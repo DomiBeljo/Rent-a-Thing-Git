@@ -26,7 +26,7 @@ public class Listing {
     private User user;
 
     @Column(name = "daily_rent_price", nullable = false)
-    private BigDecimal dailyRentPrice;
+    private BigDecimal price;
 
     @Column(nullable = false)
     private String location;
@@ -45,6 +45,9 @@ public class Listing {
 
     @Column(name = "image_urls", nullable = false)
     private String imageUrls;
+
+    @Column(name = "security_deposit", nullable = false)
+    private BigDecimal securityDeposit;
 
     @Transient
     public String getImageUrl() {

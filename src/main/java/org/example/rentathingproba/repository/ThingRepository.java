@@ -1,9 +1,13 @@
 package org.example.rentathingproba.repository;
 
+import org.example.rentathingproba.entities.Thing;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository
-public interface ThingRepository{
+import java.util.List;
 
+@Repository
+public interface ThingRepository extends JpaRepository<Thing,Long>{
+
+    List<Thing> findByUserId(Long userId);
 }

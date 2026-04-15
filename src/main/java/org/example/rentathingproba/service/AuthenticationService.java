@@ -36,7 +36,7 @@ public class AuthenticationService {
         user.setEnabled(false);
         sendVerificationEmail(user);
         return userRepository.save(user);
-    }
+    } //da kod bude pregledniji: mapper/converter
 
     public User authenticate(LoginUserDTO input){
         User user = userRepository.findByEmail(input.getEmail())

@@ -11,14 +11,21 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor //da se ne otkrije hash od usera
 public class ListingResponseDTO {
-    private Long id;
-    private BigDecimal dailyRentPrice;
+    private Long listingId;
+    private BigDecimal price;
     private String location;
-    private Boolean isAvailable;
-    private String imageUrls;
-    private Long userId;
-    private String username;
+    private boolean isAvailable;
     private LocalDateTime createdAt;
+    private BigDecimal securityDeposit;
+
+    private long thingId;
+    private String name;
+    private String category;
+    private String description;
+    private String imageUrls;
+
+    private Long userId;
+    private String userName;
 }
 
 

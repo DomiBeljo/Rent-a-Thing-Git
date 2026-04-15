@@ -33,7 +33,13 @@ public class AuthenticationController {
     public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDTO loginUserDTO) {
         User authenticatedUser = authenticationService.authenticate(loginUserDTO);
         String jwtToken = jwtService.generateToken(authenticatedUser);
-        LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getExpirationTime());
+        LoginResponse loginResponse = new LoginResponse(
+                jwtToken,
+                jwtService.getExpirationTime(),
+                authenticatedUser.getId(),
+                authenticatedUser.getUsername(),
+                authenticatedUser.getEmail()
+        );
         return ResponseEntity.ok(loginResponse);
     }
 

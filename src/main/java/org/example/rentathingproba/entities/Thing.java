@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "things")
@@ -31,14 +32,14 @@ public class Thing {
     @Column(name = "image_urls", columnDefinition = "TEXT")
     private String imageUrls;
 
-    @Column(name = "daily_rent_price", nullable = false)
-    private BigDecimal daily_rent_price ;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
-    @Column(name = "security_deposit", nullable = false)
-    private BigDecimal securityDeposit;
-
-    @Column(nullable = false)
-    private String location;
+    @PrePersist
+    protected void  onCreate()
+    {
+        this.createdAt = LocalDateTime.now();
+    }
 
     @Transient
     public String getImageUrl(){

@@ -1,4 +1,4 @@
-package org.example.rentathingproba.dto;
+/*package org.example.rentathingproba.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -11,3 +11,4 @@ public class ListingDTO {
     public BigDecimal dailyRentPrice;
     public String location;
 }
+*/

@@ -9,8 +9,16 @@ public class LoginResponse {
     private String token;
     private Long expiresIn;
 
-    public LoginResponse(String token, Long expiresIn) {
+    //da app zna tko je ulogiran
+    private long userId;
+    private String username;
+    private String email;
+
+    public LoginResponse(String token, Long expiresIn, long userId, String username, String email) {
         this.token = token;
         this.expiresIn = expiresIn;
+        this.userId = userId;
+        this.username = username;
+        this.email = email;
     }
 }
