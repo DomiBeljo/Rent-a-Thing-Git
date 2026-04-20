@@ -72,8 +72,9 @@ public class User implements UserDetails {
         return enabled;
     }
 
-    @Override
+    /*@Override
     public String getUsername() {
         return email;
     }
+     */
 }
