@@ -1,5 +1,6 @@
 package org.example.rentathingproba.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -50,6 +51,3 @@ public class Thing {
     }
 }
 
-//INSERT INTO your_table (column_name) VALUES ('non-null value');
-//
-//Make sure that all columns with NOT NULL constraints are provided with valid, non-null values.

@@ -1,4 +1,4 @@
-package org.example.rentathingproba.service;
+package org.example.rentathingproba.service.infrastrucure;
 
 import jakarta.mail.MessagingException;
 import org.example.rentathingproba.dto.LoginUserDTO;
@@ -6,6 +6,7 @@ import org.example.rentathingproba.dto.RegisteredUserDTO;
 import org.example.rentathingproba.dto.VerifiedUserDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.repository.UserRepository;
+import org.example.rentathingproba.service.business.EmailService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;

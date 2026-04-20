@@ -1,13 +1,12 @@
 package org.example.rentathingproba.controllers;
 
-import org.apache.coyote.Response;
 import org.example.rentathingproba.dto.LoginUserDTO;
 import org.example.rentathingproba.dto.RegisteredUserDTO;
 import org.example.rentathingproba.dto.VerifiedUserDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.responses.LoginResponse;
-import org.example.rentathingproba.service.AuthenticationService;
-import org.example.rentathingproba.service.JwtService;
+import org.example.rentathingproba.service.infrastrucure.AuthenticationService;
+import org.example.rentathingproba.service.business.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

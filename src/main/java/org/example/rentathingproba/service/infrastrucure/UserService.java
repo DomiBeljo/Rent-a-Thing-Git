@@ -1,8 +1,8 @@
-package org.example.rentathingproba.service;
+package org.example.rentathingproba.service.infrastrucure;
 
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.rentathingproba.service.business.EmailService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -12,7 +12,7 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository,EmailService emailService) {
+    public UserService(UserRepository userRepository, EmailService emailService) {
         this.userRepository = userRepository;
 
     }

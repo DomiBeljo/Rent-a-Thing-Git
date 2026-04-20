@@ -1,4 +1,63 @@
 package org.example.rentathingproba.controllers;
 
+import org.example.rentathingproba.dto.ListingDTO;
+import org.example.rentathingproba.entities.User;
+import org.example.rentathingproba.responses.ListingResponseDTO;
+import org.example.rentathingproba.service.infrastrucure.ListingService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/listings")
 public class ListingController {
+    private final ListingService listingService;
+
+    public ListingController(ListingService listingService) {
+        this.listingService = listingService;
+    }
+
+    @PostMapping
+    public ResponseEntity<ListingResponseDTO> create(@RequestBody ListingDTO dto) {
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(listingService.createListing(dto, currentUser));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ListingResponseDTO> update(@PathVariable Long id, @RequestBody ListingDTO dto) {
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(listingService.updateListing(id, dto, currentUser));
+    }
+
+    @PatchMapping("/{id}/toggle")
+    public ResponseEntity<Void> toggleAvailability(@PathVariable Long id) {
+        User currentUser = getCurrentUser();
+        listingService.isItAvailable(id, currentUser);
+        return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ListingResponseDTO>> search(@RequestParam String query) {
+        return ResponseEntity.ok(listingService.searchListing(query));
+    }
+
+    @GetMapping("/recommended")
+    public ResponseEntity<List<ListingResponseDTO>> recommended() {
+        return ResponseEntity.ok(listingService.getRecommended());
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<ListingResponseDTO>> myListings() {
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(listingService.getUserListing(currentUser.getId()));
+    }
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (User) auth.getPrincipal();
+    }
 }

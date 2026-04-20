@@ -32,7 +32,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/**").permitAll()  // allow everything temporarily
+                        .requestMatchers("/auth/**").permitAll() //ovo si mijenjao iz /**
+                        .requestMatchers("/listings/recommended", "/listings/search").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
