@@ -9,7 +9,7 @@ public class LoginResponse {
     private String token;
     private Long expiresIn;
 
-    //da app zna tko je ulogiran
+    //So the app knows whos logged in
     private long userId;
     private String username;
     private String email;

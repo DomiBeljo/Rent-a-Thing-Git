@@ -4,10 +4,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+
 
 @Component
 public class LoggingInterceptor implements HandlerInterceptor {
@@ -16,15 +15,14 @@ public class LoggingInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 
-        log.info("[preHandle] {} {} {} {}" ,request, request.getMethod(), request.getRemoteAddr(), request.getRequestURI());
-
+        log.info("Prehandle: {} {} {} {}" ,request, request.getMethod(), request.getRemoteAddr(), request.getRequestURI());
         return true;
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
         if (ex != null) {
-            log.error("Pogreška kod requesta: {}", ex.getMessage());
+            log.error("Error on Request: {}", ex.getMessage());
         }
 
         log.info("AfterCompletion: {}",  request, ex);

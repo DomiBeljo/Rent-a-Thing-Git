@@ -6,7 +6,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @Entity
 @Table(name = "listings")
@@ -14,7 +13,7 @@ import java.util.Date;
 @Setter
 public class Listing {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -43,10 +42,10 @@ public class Listing {
         this.createdAt = LocalDateTime.now();
     }
 
-    @Column(name = "image_urls", nullable = false)
+    @Column(name = "image_urls", columnDefinition = "TEXT")
     private String imageUrls;
 
-    @Column(name = "security_deposit", nullable = false)
+    @Column(name = "security_deposit", nullable = true)
     private BigDecimal securityDeposit;
 
     @Transient
@@ -57,5 +56,3 @@ public class Listing {
         return imageUrls.split(",")[0];
     }
 }
-
-//Jedan tool moze imat vise listinga

@@ -1,4 +1,4 @@
-package org.example.rentathingproba.service.infrastrucure;
+package org.example.rentathingproba.service.application;
 
 import org.example.rentathingproba.dto.ListingDTO;
 import org.example.rentathingproba.entities.Listing;
@@ -7,6 +7,8 @@ import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.repository.ListingRepository;
 import org.example.rentathingproba.repository.ThingRepository;
 import org.example.rentathingproba.responses.ListingResponseDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ListingService {
+    private static final Logger log = LoggerFactory.getLogger(ListingService.class);
+
     private final ListingRepository listingRepository;
     private final ThingRepository thingRepository;
 
@@ -25,10 +29,20 @@ public class ListingService {
     }
 
     public ListingResponseDTO createListing(ListingDTO dto, User owner) {
+        log.info("CREATE LISTING - thingId={}, owner={}, price={}, location={}, deposit={}",
+                dto.getThingId(), owner.getUsername(), dto.getPrice(), dto.getLocation(), dto.getSecurityDeposit());
+
         Thing thing = thingRepository.findById(dto.getThingId())
-                .orElseThrow(() -> new RuntimeException("Stvar nije pronadena!"));
+                .orElseThrow(() -> {
+                    log.error("CREATE LISTING FAILED - Thing not found: id={}", dto.getThingId());
+                    return new RuntimeException("Stvar nije pronadena!");
+                });
+
+        log.info("CREATE LISTING - Found thing: name={}, owner={}, imageUrls='{}'",
+                thing.getName(), thing.getUser().getId(), thing.getImageUrls());
 
         if(!thing.getUser().getId().equals(owner.getId())){
+            log.error("CREATE LISTING FAILED - Ownership mismatch: thing owner={}, requester={}", thing.getUser().getId(), owner.getId());
             throw new RuntimeException("Smijete objavljivati oglase iskljulivo za vlastite stvari!");
         }
 
@@ -39,8 +53,17 @@ public class ListingService {
         listing.setSecurityDeposit(dto.getSecurityDeposit());
         listing.setLocation(dto.getLocation());
         listing.setIsAvailable(true);
-        listing.setImageUrls("");
-        listing = listingRepository.save(listing);
+        String imageUrls = thing.getImageUrls() != null ? thing.getImageUrls() : "";
+        listing.setImageUrls(imageUrls);
+
+        log.info("CREATE LISTING - About to save listing with imageUrls='{}'", imageUrls);
+        try {
+            listing = listingRepository.save(listing);
+            log.info("CREATE LISTING - Saved successfully with id={}", listing.getId());
+        } catch (Exception e) {
+            log.error("CREATE LISTING FAILED - DB save threw exception: {}", e.getMessage(), e);
+            throw e;
+        }
 
         return toResponseDTO(listing);
     }
@@ -73,15 +96,22 @@ public class ListingService {
     }
 
     public List<ListingResponseDTO> searchListing(String query) {
-        return listingRepository.findByTitle(query)
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        log.info("SEARCH - query='{}'", query);
+        List<Listing> results = listingRepository.findByTitle(query);
+        log.info("SEARCH - found {} results for query='{}'", results.size(), query);
+        return results.stream().map(this::toResponseDTO).collect(Collectors.toList());
     }
 
     public List<ListingResponseDTO> getRecommended(){
-        return listingRepository.findRecommended()
-                .stream().map(this::toResponseDTO).collect(Collectors.toList());
+        log.info("RECOMMENDED - fetching recommended listings");
+        try {
+            List<Listing> results = listingRepository.findRecommended();
+            log.info("RECOMMENDED - found {} listings", results.size());
+            return results.stream().map(this::toResponseDTO).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("RECOMMENDED FAILED - {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     public List<ListingResponseDTO> getUserListing(Long userId) {
@@ -102,7 +132,7 @@ public class ListingService {
                 l.getThings().getName(),
                 l.getThings().getCategory(),
                 l.getThings().getDescription(),
-                l.getThings().getImageUrls(),
+                l.getImageUrls() != null ? l.getImageUrls() : "",
                 l.getUser().getId(),
                 l.getUser().getUsername()
         );

@@ -17,12 +17,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 public class AppConfiguration {
     private final UserRepository userRepository;
 
-    //injecta repossitory
+    //injects repositories
     public AppConfiguration(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-    //4 beans koji će biti injectani
+    //4 beans which will be injected
     @Bean
     UserDetailsService userDetailsService() {
         return username -> userRepository.findByEmail(username)

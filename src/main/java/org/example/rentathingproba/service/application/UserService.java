@@ -1,8 +1,8 @@
-package org.example.rentathingproba.service.infrastrucure;
+package org.example.rentathingproba.service.application;
 
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.repository.UserRepository;
-import org.example.rentathingproba.service.business.EmailService;
+import org.example.rentathingproba.service.infrastructure.EmailService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

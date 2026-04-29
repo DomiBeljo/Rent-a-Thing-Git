@@ -1,7 +1,7 @@
 package org.example.rentathingproba.controllers;
 
 import org.example.rentathingproba.entities.User;
-import org.example.rentathingproba.service.infrastrucure.UserService;
+import org.example.rentathingproba.service.application.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

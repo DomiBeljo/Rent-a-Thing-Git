@@ -1,4 +1,4 @@
-package org.example.rentathingproba.service.business;
+package org.example.rentathingproba.service.infrastructure;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

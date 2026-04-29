@@ -1,54 +1,72 @@
-package org.example.rentathingproba.service.infrastrucure;
+package org.example.rentathingproba.service.application;
 
 import org.example.rentathingproba.dto.ThingDTO;
 import org.example.rentathingproba.entities.Thing;
 import org.example.rentathingproba.entities.User;
+import org.example.rentathingproba.exceptions.ThingNotFoundException;
+import org.example.rentathingproba.exceptions.UnauthorizedException;
 import org.example.rentathingproba.repository.ThingRepository;
 import org.example.rentathingproba.responses.ThingResponseDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class ThingService {
+    private static final Logger log = LoggerFactory.getLogger(ThingService.class);
+
     private final ThingRepository thingRepository;
 
     public ThingService(ThingRepository thingRepository) {
         this.thingRepository = thingRepository;
     }
 
-    //Kreacija jedne stvari
+    //Create one thing
     public ThingResponseDTO createThing(ThingDTO dto, User owner) {
+        log.info("CREATE THING - name='{}', category='{}', owner={}, imageUrls='{}'",
+                dto.getName(), dto.getCategory(), owner.getUsername(), dto.getImageUrls());
         Thing thing = new Thing();
         thing.setUser(owner);
         thing.setName(dto.getName());
         thing.setCategory(dto.getCategory());
         thing.setDescription(dto.getDescription());
-        return toResponseDTO( thingRepository.save(thing));
-        //is available automatski true u ListingServiceu
+        thing.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : "");
+        try {
+            ThingResponseDTO result = toResponseDTO(thingRepository.save(thing));
+            log.info("CREATE THING - Saved successfully with id={}", result.getThingId());
+            return result;
+        } catch (Exception e) {
+            log.error("CREATE THING FAILED - {}", e.getMessage(), e);
+            throw e;
+        }
+        //is available true in ListingService
     }
 
     public ThingResponseDTO updateThing(Long thingId, ThingDTO dto, User requestingUser) {
         Thing thing = thingRepository.findById(thingId)
-                .orElseThrow(() -> new RuntimeException("Stvar nije pronađena!"));
+                .orElseThrow(() -> new ThingNotFoundException(thingId));
 
         if (!thing.getUser().getId().equals(requestingUser.getId())) {
-            throw new RuntimeException("Ne smijete mijenjati atribute ove stvari?");
+            throw new UnauthorizedException(" mijenjanje ovih atributa.");
         }
 
         thing.setName(dto.getName());
         thing.setCategory(dto.getCategory());
         thing.setDescription(dto.getDescription());
+        if (dto.getImageUrls() != null) {
+            thing.setImageUrls(dto.getImageUrls());
+        }
         return toResponseDTO(thingRepository.save(thing));
     }
 
     public ThingResponseDTO getThingById(Long thingId) {
         return toResponseDTO(thingRepository.findById(thingId)
-                .orElseThrow(() -> new RuntimeException("Stvar nije pronadena.")));
+                .orElseThrow(() -> new ThingNotFoundException(thingId)));
     }
 
     public List<ThingResponseDTO> getThingByUser(Long userId) {
@@ -58,10 +76,10 @@ public class ThingService {
 
     public void deleteThing(Long thingId, User requestingUser) {
         Thing thing = thingRepository.findById(thingId)
-                .orElseThrow(() -> new RuntimeException("Stvar nije pronadena."));
+                .orElseThrow(() -> new ThingNotFoundException(thingId));
 
         if (!requestingUser.getId().equals(thing.getUser().getId())) {
-            throw new RuntimeException("Niste autorizirani za brisanje odabrane stvari.");
+            throw new UnauthorizedException(" brisanje ovih atributa.");
         }
         thingRepository.delete(thing);
     }
@@ -69,14 +87,14 @@ public class ThingService {
     //mapper 2
     private ThingResponseDTO toResponseDTO(Thing t) {
         return new ThingResponseDTO(
-        t.getId(),
-        t.getName(),
-        t.getCategory(),
-        t.getDescription(),
-        t.getImageUrls(),
-        t.getCreatedAt(),
-        t.getUser().getId(),
-        t.getUser().getUsername()
-                );
+                t.getId(),
+                t.getName(),
+                t.getCategory(),
+                t.getDescription(),
+                t.getImageUrls(),
+                t.getCreatedAt(),
+                t.getUser().getId(),
+                t.getUser().getUsername()
+        );
     }
 }

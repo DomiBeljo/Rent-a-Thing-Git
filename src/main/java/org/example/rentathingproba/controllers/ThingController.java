@@ -1,10 +1,9 @@
 package org.example.rentathingproba.controllers;
 
 import org.example.rentathingproba.dto.ThingDTO;
-import org.example.rentathingproba.entities.Thing;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.responses.ThingResponseDTO;
-import org.example.rentathingproba.service.infrastrucure.ThingService;
+import org.example.rentathingproba.service.application.ThingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

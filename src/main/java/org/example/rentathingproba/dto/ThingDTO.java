@@ -11,5 +11,5 @@ public class ThingDTO {
     private String name;
     private String category;
     private String description;
-    //slike će se dodavati kasnije
+    private String imageUrls;
 }

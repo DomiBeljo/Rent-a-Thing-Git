@@ -1,4 +1,4 @@
-package org.example.rentathingproba.service.infrastrucure;
+package org.example.rentathingproba.service.application;
 
 import jakarta.mail.MessagingException;
 import org.example.rentathingproba.dto.LoginUserDTO;
@@ -6,7 +6,7 @@ import org.example.rentathingproba.dto.RegisteredUserDTO;
 import org.example.rentathingproba.dto.VerifiedUserDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.repository.UserRepository;
-import org.example.rentathingproba.service.business.EmailService;
+import org.example.rentathingproba.service.infrastructure.EmailService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,10 +41,10 @@ public class AuthenticationService {
 
     public User authenticate(LoginUserDTO input){
         User user = userRepository.findByEmail(input.getEmail())
-                .orElseThrow(() -> new RuntimeException("User nije pronaden"));
+                .orElseThrow(() -> new RuntimeException("User not found."));
 
         if (!user.isEnabled()){
-            throw new RuntimeException("Račun nije verificiran. Molimo Vas verificirajte ga.");
+            throw new RuntimeException("Account not verified. Please verify it.");
         }
 
         authenticationManager.authenticate(
@@ -57,8 +57,13 @@ public class AuthenticationService {
         Optional<User> optionalUser = userRepository.findByEmail(input.getEmail());
         if (optionalUser.isPresent()){
             User user = optionalUser.get();
+
+            if (user.isEnabled()){
+                throw new RuntimeException("Account already verified.");
+            }
+
             if(user.getVerificationCodeExpiration().isBefore(LocalDateTime.now())){
-                throw new RuntimeException("Kod za verifikaciju je istekao.");
+                throw new RuntimeException("Verification code expired.");
             }
             if(user.getVerificationCode().equals(input.getVerificationCode())){
                 user.setEnabled(true);
@@ -66,11 +71,12 @@ public class AuthenticationService {
                 user.setVerificationCodeExpiration(null);
                 userRepository.save(user);
             } else {
-                throw new RuntimeException("Kod za verifikaciju nije ispravan. Pokušajte ponovno");
+                throw new RuntimeException("Wrong verification code. Please try again.");
             }
         } else{
-            throw new RuntimeException("Korisnik nije pronađen");
+            throw new RuntimeException("User not found.");
         }
+
     }
 
     //resendanje verification codea.
@@ -79,14 +85,14 @@ public class AuthenticationService {
         if (optionalUser.isPresent()){
             User user = optionalUser.get();
             if (user.isEnabled()){
-                throw new RuntimeException("Račun je već verificiran!");
+                throw new RuntimeException("Account already verified.");
             }
             user.setVerificationCode(generateVerificationCode());
             user.setVerificationCodeExpiration(LocalDateTime.now().plusMinutes(5));
             sendVerificationEmail(user);
             userRepository.save(user);
         } else{
-            throw new RuntimeException("Korisnik nije pronađen.");
+            throw new RuntimeException("User not found.");
         }
     }
 
@@ -138,7 +144,7 @@ public class AuthenticationService {
 
     private String generateVerificationCode(){
         Random random = new Random();
-        int code = random.nextInt(999999) + 100000;
+        int code = random.nextInt(900000) + 100000;
         return String.valueOf(code);
     }
 }

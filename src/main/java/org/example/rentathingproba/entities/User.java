@@ -14,10 +14,10 @@ import java.util.List;
 @Table(name = "users")
 @Getter
 @Setter
-//Radi sa spring security i providea sve s user information (UserDetails).
+//Works with spring security and provides all with users  informtaion(UserDetails):
 public class User implements UserDetails {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(unique = true, nullable = false)
@@ -45,11 +45,15 @@ public class User implements UserDetails {
 
     public User() {
     }
-
-    //Metode za UserDetails
-    @Override  //role based authentication nema
+    //Methods for UserDetails
+    @Override  //role based authentication none
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
     }
 
     @Override
@@ -71,10 +75,4 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return enabled;
     }
-
-    /*@Override
-    public String getUsername() {
-        return email;
-    }
-     */
 }
