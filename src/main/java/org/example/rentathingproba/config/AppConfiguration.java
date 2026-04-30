@@ -1,6 +1,4 @@
 package org.example.rentathingproba.config;
-//overrideat auth + jwt token umjesto httpa
-//trazi korisnika iz db i generira token kad je auth uspojesna
 
 import org.example.rentathingproba.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
@@ -25,8 +23,8 @@ public class AppConfiguration {
     //4 beans which will be injected
     @Bean
     UserDetailsService userDetailsService() {
-        return username -> userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User nije pronaden"));
+        return email -> userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
     }
 
     //for encoding passwords securely.
@@ -37,7 +35,7 @@ public class AppConfiguration {
 
 
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception{
+    AuthenticationManager authenticationManager(AuthenticationConfiguration config){
         return config.getAuthenticationManager();
     }
 
@@ -47,6 +45,4 @@ public class AppConfiguration {
         provider.setPasswordEncoder(bCryptPasswordEncoder());
         return provider;
     }
-
-
 }

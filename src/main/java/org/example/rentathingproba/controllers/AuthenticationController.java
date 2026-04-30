@@ -5,6 +5,7 @@ import org.example.rentathingproba.dto.RegisteredUserDTO;
 import org.example.rentathingproba.dto.VerifiedUserDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.responses.LoginResponse;
+import org.example.rentathingproba.responses.MessageResponse;
 import org.example.rentathingproba.service.application.AuthenticationService;
 import org.example.rentathingproba.service.infrastructure.JwtService;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +24,10 @@ public class AuthenticationController {
     }
     //expose the mapping for signing up, so ppl can create accounts. (postmapping)
     @PostMapping("/signup")
-    public ResponseEntity<User> register(@RequestBody RegisteredUserDTO registeredUserDTO) {
-        User registeredUser = authenticationService.signUp(registeredUserDTO);
-        return ResponseEntity.ok(registeredUser);
+    public ResponseEntity<MessageResponse> register(@RequestBody RegisteredUserDTO registeredUserDTO) {
+        authenticationService.signUp(registeredUserDTO);
+        return ResponseEntity.ok(new MessageResponse(
+                "Registration successful. Please check your email for the verification code."));
     }
 
     @PostMapping("/login")
@@ -43,23 +45,15 @@ public class AuthenticationController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<?> verifyUser(@RequestBody VerifiedUserDTO verifiedUserDTO) {
-        try {
-            authenticationService.verifyUser(verifiedUserDTO);
-            return ResponseEntity.ok("Račun je uspješno verificiran");
-
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<String> verifyUser(@RequestBody VerifiedUserDTO verifiedUserDTO) {
+        authenticationService.verifyUser(verifiedUserDTO);
+        return ResponseEntity.ok("Account verified successfully.");
     }
 
     @PostMapping("/resend")
-    public ResponseEntity<?> resendVerificationCode(@RequestParam String email) {
-        try {
-            authenticationService.resendVerificationCode(email);
-            return ResponseEntity.ok("Verifikacijski kod je poslan");
-        } catch (RuntimeException e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<MessageResponse> resendVerificationCode(@RequestParam String email) {
+        authenticationService.resendVerificationCode(email);
+        return ResponseEntity.ok(new MessageResponse(
+                "Verification code sent."));
     }
 }

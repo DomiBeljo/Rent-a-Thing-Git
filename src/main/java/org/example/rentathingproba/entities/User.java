@@ -1,5 +1,6 @@
 package org.example.rentathingproba.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +24,7 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String username;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -31,9 +33,11 @@ public class User implements UserDetails {
 
     private boolean enabled;
 
+    @JsonIgnore
     @Column(name = "verification_code")
     private String verificationCode;
 
+    @JsonIgnore
     @Column(name = "verification_expiration")
     private LocalDateTime verificationCodeExpiration;
 
@@ -46,7 +50,8 @@ public class User implements UserDetails {
     public User() {
     }
     //Methods for UserDetails
-    @Override  //role based authentication none
+    @Override
+    @JsonIgnore//role based authentication none
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
     }
@@ -54,7 +59,7 @@ public class User implements UserDetails {
     @Override
     public String getUsername() {
         return email;
-    }
+    } //My mistake, it works but... yeah
 
     @Override
     public boolean isAccountNonExpired() {

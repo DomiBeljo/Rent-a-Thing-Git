@@ -4,7 +4,9 @@ import org.example.rentathingproba.dto.ThingDTO;
 import org.example.rentathingproba.entities.Thing;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.exceptions.ThingNotFoundException;
+import org.example.rentathingproba.exceptions.ThingOwnershipException;
 import org.example.rentathingproba.exceptions.UnauthorizedException;
+import org.example.rentathingproba.mapper.ThingMapper;
 import org.example.rentathingproba.repository.ThingRepository;
 import org.example.rentathingproba.responses.ThingResponseDTO;
 import org.slf4j.Logger;
@@ -21,29 +23,22 @@ public class ThingService {
     private static final Logger log = LoggerFactory.getLogger(ThingService.class);
 
     private final ThingRepository thingRepository;
+    private final ThingMapper thingMapper;
 
-    public ThingService(ThingRepository thingRepository) {
+    public ThingService(ThingRepository thingRepository, ThingMapper thingMapper) {
         this.thingRepository = thingRepository;
+        this.thingMapper = thingMapper;
     }
 
     //Create one thing
     public ThingResponseDTO createThing(ThingDTO dto, User owner) {
-        log.info("CREATE THING - name='{}', category='{}', owner={}, imageUrls='{}'",
-                dto.getName(), dto.getCategory(), owner.getUsername(), dto.getImageUrls());
-        Thing thing = new Thing();
-        thing.setUser(owner);
-        thing.setName(dto.getName());
-        thing.setCategory(dto.getCategory());
-        thing.setDescription(dto.getDescription());
-        thing.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : "");
-        try {
-            ThingResponseDTO result = toResponseDTO(thingRepository.save(thing));
-            log.info("CREATE THING - Saved successfully with id={}", result.getThingId());
-            return result;
-        } catch (Exception e) {
-            log.error("CREATE THING FAILED - {}", e.getMessage(), e);
-            throw e;
-        }
+        log.info("Creating thing: name='{}', category='{}', owner='{}'", dto.getName(), dto.getCategory(), owner.getUsername());
+
+        Thing thing = thingMapper.toEntity(dto, owner);
+        Thing saved = thingRepository.save(thing);
+
+        log.info("Thing created successfully: id='{}'", saved.getId());
+        return thingMapper.toResponse(saved);
         //is available true in ListingService
     }
 
@@ -52,26 +47,27 @@ public class ThingService {
                 .orElseThrow(() -> new ThingNotFoundException(thingId));
 
         if (!thing.getUser().getId().equals(requestingUser.getId())) {
-            throw new UnauthorizedException(" mijenjanje ovih atributa.");
+            log.warn("Ownership violation on updateThing: thingId={}, requestingUser={}", thingId, requestingUser.getId());
+            throw new ThingOwnershipException();
         }
 
-        thing.setName(dto.getName());
-        thing.setCategory(dto.getCategory());
-        thing.setDescription(dto.getDescription());
-        if (dto.getImageUrls() != null) {
-            thing.setImageUrls(dto.getImageUrls());
-        }
-        return toResponseDTO(thingRepository.save(thing));
+        thingMapper.updateEntity(thing, dto);
+        return thingMapper.toResponse(thingRepository.save(thing));
     }
 
+    @Transactional(readOnly = true)
     public ThingResponseDTO getThingById(Long thingId) {
-        return toResponseDTO(thingRepository.findById(thingId)
-                .orElseThrow(() -> new ThingNotFoundException(thingId)));
+        return thingMapper.toResponse(
+                thingRepository.findById(thingId)
+                        .orElseThrow(() -> new ThingNotFoundException(thingId))
+        );
     }
 
+    @Transactional(readOnly = true)
     public List<ThingResponseDTO> getThingByUser(Long userId) {
-        return thingRepository.findByUserId(userId)
-                .stream().map(this::toResponseDTO).collect(Collectors.toList());
+        return thingRepository.findByUserId(userId).stream()
+                .map(thingMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     public void deleteThing(Long thingId, User requestingUser) {
@@ -79,22 +75,11 @@ public class ThingService {
                 .orElseThrow(() -> new ThingNotFoundException(thingId));
 
         if (!requestingUser.getId().equals(thing.getUser().getId())) {
-            throw new UnauthorizedException(" brisanje ovih atributa.");
+            log.warn("Ownership violation on delteThing: thingId={}, requestingUser={}", thingId, requestingUser.getId());
+            throw new ThingOwnershipException();
         }
         thingRepository.delete(thing);
+        log.info("Thing deleted successfully: id='{}'", thingId);
     }
 
-    //mapper 2
-    private ThingResponseDTO toResponseDTO(Thing t) {
-        return new ThingResponseDTO(
-                t.getId(),
-                t.getName(),
-                t.getCategory(),
-                t.getDescription(),
-                t.getImageUrls(),
-                t.getCreatedAt(),
-                t.getUser().getId(),
-                t.getUser().getUsername()
-        );
-    }
 }

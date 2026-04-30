@@ -11,6 +11,12 @@ import java.util.Properties;
 
 @Configuration
 public class EmailConfig {
+    @Value("${SPRING_MAIL_HOST}")
+    private String mailHost;
+
+    @Value("${SPRING_MAIL_PORT}")
+    private int mailPort;
+
     @Value("${spring.mail.username}")
     private String emailUsername;
 
@@ -21,8 +27,8 @@ public class EmailConfig {
     @Bean
     public JavaMailSender getJavaMailSender(){
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-        mailSender.setHost("smtp.gmail.com"); //for gmail
-        mailSender.setPort(587); //
+        mailSender.setHost(mailHost);
+        mailSender.setPort(mailPort);
         mailSender.setUsername(emailUsername);
         mailSender.setPassword(emailPassword);
 
@@ -30,7 +36,6 @@ public class EmailConfig {
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.debug", "true");
 
         return mailSender;
     }

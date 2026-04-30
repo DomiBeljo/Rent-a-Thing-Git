@@ -13,19 +13,20 @@ public class LoggingInterceptor implements HandlerInterceptor {
     private static final Logger log = LoggerFactory.getLogger(LoggingInterceptor.class);
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-
-        log.info("Prehandle: {} {} {} {}" ,request, request.getMethod(), request.getRemoteAddr(), request.getRequestURI());
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        log.info("Incoming request: method={}, uri={}, remoteAddr{}" ,request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
         return true;
     }
 
     @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         if (ex != null) {
-            log.error("Error on Request: {}", ex.getMessage());
+            log.error("Request completed with exception: method={}, uri={}, error={}",
+                    request.getMethod(), request.getRequestURI(), ex.getMessage());
+        } else{
+            log.info("Request completed: method={}, uri={}, status={}",
+                    request.getMethod(), request.getRequestURI(), response.getStatus());
         }
-
-        log.info("AfterCompletion: {}",  request, ex);
     }
 
 

@@ -4,6 +4,11 @@ import org.example.rentathingproba.dto.ListingDTO;
 import org.example.rentathingproba.entities.Listing;
 import org.example.rentathingproba.entities.Thing;
 import org.example.rentathingproba.entities.User;
+import org.example.rentathingproba.exceptions.ListingNotFoundException;
+import org.example.rentathingproba.exceptions.ListingOwnershipException;
+import org.example.rentathingproba.exceptions.ThingNotFoundException;
+import org.example.rentathingproba.exceptions.ThingOwnershipException;
+import org.example.rentathingproba.mapper.ListingMapper;
 import org.example.rentathingproba.repository.ListingRepository;
 import org.example.rentathingproba.repository.ThingRepository;
 import org.example.rentathingproba.responses.ListingResponseDTO;
@@ -22,119 +27,81 @@ public class ListingService {
 
     private final ListingRepository listingRepository;
     private final ThingRepository thingRepository;
+    private final ListingMapper listingMapper;
 
-    public ListingService(ListingRepository listingRepository, ThingRepository thingRepository) {
+    public ListingService(ListingRepository listingRepository, ThingRepository thingRepository, ListingMapper listingmapper) {
         this.listingRepository = listingRepository;
         this.thingRepository = thingRepository;
+        this.listingMapper = listingmapper;
     }
 
     public ListingResponseDTO createListing(ListingDTO dto, User owner) {
-        log.info("CREATE LISTING - thingId={}, owner={}, price={}, location={}, deposit={}",
+        log.info("Creating listing - thingId={}, owner={}, price={}, location={}, deposit={}",
                 dto.getThingId(), owner.getUsername(), dto.getPrice(), dto.getLocation(), dto.getSecurityDeposit());
 
         Thing thing = thingRepository.findById(dto.getThingId())
-                .orElseThrow(() -> {
-                    log.error("CREATE LISTING FAILED - Thing not found: id={}", dto.getThingId());
-                    return new RuntimeException("Stvar nije pronadena!");
-                });
-
-        log.info("CREATE LISTING - Found thing: name={}, owner={}, imageUrls='{}'",
-                thing.getName(), thing.getUser().getId(), thing.getImageUrls());
+                .orElseThrow(() -> new ThingNotFoundException(dto.getThingId()));
 
         if(!thing.getUser().getId().equals(owner.getId())){
-            log.error("CREATE LISTING FAILED - Ownership mismatch: thing owner={}, requester={}", thing.getUser().getId(), owner.getId());
-            throw new RuntimeException("Smijete objavljivati oglase iskljulivo za vlastite stvari!");
+            log.warn("Ownership violation on createListing: thingId={}, requester={}", dto.getThingId(), owner.getId());
+            throw new ThingOwnershipException();
         }
 
-        Listing listing = new Listing();
-        listing.setThings(thing);
-        listing.setUser(owner);
-        listing.setPrice(dto.getPrice());
-        listing.setSecurityDeposit(dto.getSecurityDeposit());
-        listing.setLocation(dto.getLocation());
-        listing.setIsAvailable(true);
-        String imageUrls = thing.getImageUrls() != null ? thing.getImageUrls() : "";
-        listing.setImageUrls(imageUrls);
+        Listing listing = listingMapper.toEntity(dto, owner, thing);
+        Listing saved = listingRepository.save(listing);
 
-        log.info("CREATE LISTING - About to save listing with imageUrls='{}'", imageUrls);
-        try {
-            listing = listingRepository.save(listing);
-            log.info("CREATE LISTING - Saved successfully with id={}", listing.getId());
-        } catch (Exception e) {
-            log.error("CREATE LISTING FAILED - DB save threw exception: {}", e.getMessage(), e);
-            throw e;
-        }
-
-        return toResponseDTO(listing);
+        log.info("Listing saved succesfully: id='{}'", saved.getId());
+        return listingMapper.toResponse(saved);
     }
 
     public ListingResponseDTO updateListing(Long listingId, ListingDTO dto, User requestingUser) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new RuntimeException("Oglas nije pronaden!"));
+                .orElseThrow(() -> new ListingNotFoundException(listingId));
 
         if(!listing.getUser().getId().equals(requestingUser.getId())){
-            throw new RuntimeException("Niste autorizirani mijenjati ovaj oglas.");
+            log.warn("Ownership violation on updateListing: listingId={}, requester={}", listingId, requestingUser.getId());
+            throw new ListingOwnershipException();
         }
 
-        listing.setPrice(dto.getPrice());
-        listing.setSecurityDeposit(dto.getSecurityDeposit());
-        listing.setLocation(dto.getLocation());
-        listing =  listingRepository.save(listing);
-
-        return toResponseDTO(listing);
+        listingMapper.updateEntity(listing, dto);
+        return listingMapper.toResponse(listingRepository.save(listing));
     }
 
     public void isItAvailable(Long listingId, User requestingUser) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new RuntimeException("Oglas nije pronaden!"));
+                .orElseThrow(() -> new ListingNotFoundException(listingId));
 
         if(!listing.getUser().getId().equals(requestingUser.getId())){
-            throw new RuntimeException("Niste autorizirani za ovu radnju!");
+            log.warn("Ownership violation on isItAvailable: listingId={}, requester={}", listingId,  requestingUser.getId());
+            throw new ListingOwnershipException();
         }
+
         listing.setIsAvailable(!listing.getIsAvailable());
         listingRepository.save(listing);
+        log.info("Listing availability toggled: id={}, isAvailable={}", listing.getId(),  listing.getIsAvailable());
     }
 
+    @Transactional(readOnly = true)
     public List<ListingResponseDTO> searchListing(String query) {
-        log.info("SEARCH - query='{}'", query);
+        log.info("Searching listings: query='{}'", query);
         List<Listing> results = listingRepository.findByTitle(query);
-        log.info("SEARCH - found {} results for query='{}'", results.size(), query);
-        return results.stream().map(this::toResponseDTO).collect(Collectors.toList());
+        log.info("Search returned: {} results for query='{}'", results.size(), query);
+        return results.stream().map(listingMapper::toResponse).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<ListingResponseDTO> getRecommended(){
-        log.info("RECOMMENDED - fetching recommended listings");
-        try {
-            List<Listing> results = listingRepository.findRecommended();
-            log.info("RECOMMENDED - found {} listings", results.size());
-            return results.stream().map(this::toResponseDTO).collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("RECOMMENDED FAILED - {}", e.getMessage(), e);
-            throw e;
-        }
+        log.info("Fetching recommended listings");
+        List<Listing> results = listingRepository.findRecommended();
+        log.info("Recommended listings fetched: count={}", results.size());
+        return results.stream().map(listingMapper::toResponse).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<ListingResponseDTO> getUserListing(Long userId) {
-        return listingRepository.findByUserId(userId)
-                .stream().map(this::toResponseDTO).collect(Collectors.toList());
+        return listingRepository.findByUserId(userId).stream()
+                .map(listingMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
-    //mapper
-    private ListingResponseDTO toResponseDTO(Listing l) {
-        return new ListingResponseDTO(
-                l.getId(),
-                l.getPrice(),
-                l.getLocation(),
-                l.getIsAvailable(),
-                l.getCreatedAt(),
-                l.getSecurityDeposit(),
-                l.getThings().getId(),
-                l.getThings().getName(),
-                l.getThings().getCategory(),
-                l.getThings().getDescription(),
-                l.getImageUrls() != null ? l.getImageUrls() : "",
-                l.getUser().getId(),
-                l.getUser().getUsername()
-        );
-    }
 }

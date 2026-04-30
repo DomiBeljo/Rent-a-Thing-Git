@@ -9,16 +9,20 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
-    @Autowired
-    private JavaMailSender emailSender;
 
-    public void sendVerificationEmail(String to, String subject, String text) throws MessagingException {
+    private final JavaMailSender emailSender;
+
+    //Constructor injection instead of field injection.
+    public EmailService(JavaMailSender emailSender) {
+        this.emailSender = emailSender;
+    }
+
+    public void sendVerificationEmail(String to, String subject, String htmlBody) throws MessagingException {
         MimeMessage message = emailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
+        MimeMessageHelper helper = new MimeMessageHelper(message, true,  "UTF-8");
         helper.setTo(to);
         helper.setSubject(subject);
-        helper.setText(text, true);
+        helper.setText(htmlBody, true);
         emailSender.send(message);
     }
 }

@@ -5,19 +5,27 @@ import org.example.rentathingproba.dto.LoginUserDTO;
 import org.example.rentathingproba.dto.RegisteredUserDTO;
 import org.example.rentathingproba.dto.VerifiedUserDTO;
 import org.example.rentathingproba.entities.User;
+import org.example.rentathingproba.exceptions.*;
 import org.example.rentathingproba.repository.UserRepository;
 import org.example.rentathingproba.service.infrastructure.EmailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.Random;
 
 @Service
 public class AuthenticationService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
+
+    //better verification code (Thread safe).
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -31,120 +39,122 @@ public class AuthenticationService {
     }
 
     public User signUp(RegisteredUserDTO input){
+        log.info("Registering new user: username='{}', email='{}' ", input.getUsername(), input.getEmail());
+
         User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
         user.setVerificationCode(generateVerificationCode());
         user.setVerificationCodeExpiration(LocalDateTime.now().plusMinutes(15));
         user.setEnabled(false);
+
         sendVerificationEmail(user);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+
+        log.info("User registered successfully: id={}", saved.getId());
+        return saved;
     } //da kod bude pregledniji: mapper/converter
 
     public User authenticate(LoginUserDTO input){
+        log.info("Authentication attempt for email='{}'", input.getEmail());
+
         User user = userRepository.findByEmail(input.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(input.getEmail()));
 
         if (!user.isEnabled()){
-            throw new RuntimeException("Account not verified. Please verify it.");
+            throw new AccountNotVerifiedException();
         }
 
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(input.getEmail(), input.getPassword())
         );
+
+        log.info("Authentication successful: userId='{}'", user.getId());
         return user;
     }
 
     public void verifyUser(VerifiedUserDTO input){
-        Optional<User> optionalUser = userRepository.findByEmail(input.getEmail());
-        if (optionalUser.isPresent()){
-            User user = optionalUser.get();
+        User user = userRepository.findByEmail(input.getEmail())
+                .orElseThrow(() -> new UserNotFoundException(input.getEmail()));
 
-            if (user.isEnabled()){
-                throw new RuntimeException("Account already verified.");
-            }
-
-            if(user.getVerificationCodeExpiration().isBefore(LocalDateTime.now())){
-                throw new RuntimeException("Verification code expired.");
-            }
-            if(user.getVerificationCode().equals(input.getVerificationCode())){
-                user.setEnabled(true);
-                user.setVerificationCode(null);
-                user.setVerificationCodeExpiration(null);
-                userRepository.save(user);
-            } else {
-                throw new RuntimeException("Wrong verification code. Please try again.");
-            }
-        } else{
-            throw new RuntimeException("User not found.");
+        if (user.isEnabled()){
+            throw new AccountNotVerifiedException();
         }
+
+        if(user.getVerificationCodeExpiration().isBefore(LocalDateTime.now())){
+            throw new VerificationCodeExpiredException();
+        }
+
+        if (!user.getVerificationCode().equals(input.getVerificationCode())) {
+            throw new VerificationCodeInvalidException();
+        }
+
+        user.setEnabled(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiration(null);
+        userRepository.save(user);
+
+        log.info("User verified successfully: email='{}'", input.getEmail());
 
     }
 
     //resendanje verification codea.
     public void resendVerificationCode(String email){
-        Optional<User> optionalUser = userRepository.findByEmail(email);
-        if (optionalUser.isPresent()){
-            User user = optionalUser.get();
-            if (user.isEnabled()){
-                throw new RuntimeException("Account already verified.");
-            }
-            user.setVerificationCode(generateVerificationCode());
-            user.setVerificationCodeExpiration(LocalDateTime.now().plusMinutes(5));
-            sendVerificationEmail(user);
-            userRepository.save(user);
-        } else{
-            throw new RuntimeException("User not found.");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(email));
+
+        if (user.isEnabled()){
+            throw new AccountAlreadyVerifiedException();
+        }
+
+        user.setVerificationCode(generateVerificationCode());
+        user.setVerificationCodeExpiration(LocalDateTime.now().plusMinutes(5));
+        sendVerificationEmail(user);
+        userRepository.save(user);
+
+        log.info("Verification code resent: email='{}'", email);
+    }
+
+    private void sendVerificationEmail(User user) {
+        String subject = "Rent-a-Thing — Account Verification";
+        String htmlMessage = buildVerificationEmailHtml(user.getUsername(), user.getVerificationCode());
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), subject, htmlMessage);
+        } catch (MessagingException e) {
+            log.error("Failed to send verification email to '{}': {}", user.getEmail(), e.getMessage());
         }
     }
 
-    public void sendVerificationEmail(User user){
-        String subject = "Verifikacija korisničkog računa";
-        String verificationCode = user.getVerificationCode();
-        //Kod za html
-        String htmlMessage = """
+    private String buildVerificationEmailHtml(String username, String verificationCode) {
+        return """
                 <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
                 <div style="max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 10px; text-align: center;">
-
                 <h2 style="color: #333;">Rent-a-Thing</h2>
-
                 <p style="font-size: 16px; color: #555;">
-                Pozdrav <b>%s</b>,
+                    Hello <b>%s</b>,
                 </p>
-
                 <p style="font-size: 16px; color: #555;">
-                Hvala na registraciji! Za dovršetak procesa, unesite verifikacijski kod:
+                    Thank you for registering! To complete the process, enter your verification code:
                 </p>
-
                 <div style="margin: 30px 0;">
                 <span style="display: inline-block; padding: 15px 25px; font-size: 24px; letter-spacing: 5px;
-        background-color: #4CAF50; color: white; border-radius: 8px;">
-                %s
+                    background-color: #4CAF50; color: white; border-radius: 8px;">
+                    %s
                 </span>
                 </div>
-
                 <p style="font-size: 14px; color: #999;">
-                Kod vrijedi 15 minuta.
+                    This code is valid for 15 minutes.
                 </p>
-
                 <hr style="margin: 30px 0;">
-
                 <p style="font-size: 12px; color: #aaa;">
-                Ako niste vi napravili ovu registraciju, slobodno ignorirajte ovu poruku.
+                    If you did not create this account, you can safely ignore this email.
                 </p>
-
                 </div>
                 </div>
-                """.formatted(user.getUsername(), verificationCode);
-        try{
-            emailService.sendVerificationEmail(user.getEmail(), subject, htmlMessage);
-        } catch(MessagingException e){
-            e.printStackTrace();
-        }
+                """.formatted(username, verificationCode);
     }
 
 
     private String generateVerificationCode(){
-        Random random = new Random();
-        int code = random.nextInt(900000) + 100000;
+        int code = SECURE_RANDOM.nextInt(900000) + 100000;
         return String.valueOf(code);
     }
 }

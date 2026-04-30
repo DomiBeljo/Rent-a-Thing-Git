@@ -1,9 +1,11 @@
 package org.example.rentathingproba.controllers;
 
 import org.example.rentathingproba.entities.User;
+import org.example.rentathingproba.responses.UserResponseDTO;
 import org.example.rentathingproba.service.application.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,18 +23,18 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<User> authenticatedUser(){
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            assert authentication != null;
-            User currentUser = (User) authentication.getPrincipal();
-        return ResponseEntity.ok(currentUser);
+    public ResponseEntity<UserResponseDTO> authenticatedUser(@AuthenticationPrincipal User currentUser){
+        return  ResponseEntity.ok(new UserResponseDTO(
+                currentUser.getId(),
+                currentUser.getUsername(),
+                currentUser.getEmail()
+        ));
 
     }
 
-    @GetMapping("/")
-    public ResponseEntity<List<User>> allUsers(){
-        List<User> users = userService.findAllUsers();
-        return ResponseEntity.ok(users);
+    @GetMapping
+    public ResponseEntity<List<UserResponseDTO>> allUsers(){
+        return ResponseEntity.ok(userService.findAllUsers());
     }
 
 }

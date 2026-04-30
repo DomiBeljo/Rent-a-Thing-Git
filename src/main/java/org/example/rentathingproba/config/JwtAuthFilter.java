@@ -1,5 +1,7 @@
 package org.example.rentathingproba.config;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,7 +12,6 @@ import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -37,69 +38,56 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path.startsWith("/auth/");
+        return request.getRequestURI().startsWith("/auth/");
     }
 
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
+            @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String method = request.getMethod();
-        String uri = request.getRequestURI();
-        log.info("JWT FILTER >>> {} {}", method, uri);
+        final String authHeader = request.getHeader("Authorization");
 
-        final String authorizationHeader = request.getHeader("Authorization");
-
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            log.warn("JWT FILTER >>> No Bearer token for {} {} — continuing without auth", method, uri);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
-
-        log.info("JWT FILTER >>> Token found, validating...");
+        //Handles exceptions correctly now.
+        final String jwt = authHeader.substring(7);
 
         try {
-            final String jwt = authorizationHeader.substring(7);
             final String userEmail = jwtService.extractUsername(jwt);
-            log.info("JWT FILTER >>> Token email: {}", userEmail);
 
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            // Only authenticate if not already authenticated in this request
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
-            if (userEmail != null && authentication == null) {
-                UserDetails userDetails;
-                try {
-                    userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                    log.info("JWT FILTER >>> User found in DB: {}", userEmail);
-                } catch (Exception e) {
-                    log.error("JWT FILTER >>> User NOT found in DB for email: {} — stale token, skipping auth", userEmail);
-                    filterChain.doFilter(request, response);
-                    return;
-                }
-
-                boolean valid = jwtService.validateToken(jwt, userDetails);
-                log.info("JWT FILTER >>> Token valid: {}", valid);
-
-                if (valid) {
+                if (jwtService.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities()
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.info("JWT FILTER >>> Authentication set for: {}", userEmail);
+                    log.debug("JWT authentication set for user: {}", userEmail);
                 } else {
-                    log.warn("JWT FILTER >>> Token failed validation for: {}", userEmail);
+                    log.warn("JWT validation failed for user: {}", userEmail);
                 }
-            } else {
-                log.info("JWT FILTER >>> Already authenticated or no email in token");
             }
 
             filterChain.doFilter(request, response);
-        } catch (Exception e) {
-            log.error("JWT FILTER >>> Exception: {}", e.getMessage());
+
+        } catch (ExpiredJwtException ex) {
+            log.warn("Expired JWT token on request to {}: {}", request.getRequestURI(), ex.getMessage());
+            filterChain.doFilter(request, response);
+
+            } catch (JwtException ex) {
+            log.warn("Invalid JWT token on request to {}: {}", request.getRequestURI(), ex.getMessage());
+            handlerExceptionResolver.resolveException(request, response, null, ex);
+
+            } catch (Exception e) {
+            log.warn("Unexpected error in JWT filter: {}", e.getMessage(), e);
             handlerExceptionResolver.resolveException(request, response, null, e);
         }
     }
