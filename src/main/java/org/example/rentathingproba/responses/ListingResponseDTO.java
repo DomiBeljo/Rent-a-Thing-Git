@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -22,10 +23,12 @@ public class ListingResponseDTO {
     private String name;
     private String category;
     private String description;
-    private String imageUrls;
+    private List<String> imageUrls;
 
     private Long userId;
     private String userName;
+
+
 }
 
 

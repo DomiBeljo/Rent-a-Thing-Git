@@ -47,6 +47,11 @@ public class ListingController {
         return ResponseEntity.ok(listingService.getRecommended());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ListingResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(listingService.getListingById(id));
+    }
+
     @GetMapping("/my")
     public ResponseEntity<List<ListingResponseDTO>> myListings(@AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(listingService.getUserListing(currentUser.getId()));

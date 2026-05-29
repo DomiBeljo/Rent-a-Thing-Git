@@ -104,4 +104,11 @@ public class ListingService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public ListingResponseDTO getListingById(Long listingId) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new ListingNotFoundException(listingId));
+        return listingMapper.toResponse(listing);
+    }
+
 }
