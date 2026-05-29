@@ -38,6 +38,10 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/listings/recommended", "/listings/search").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/images/**").permitAll()
+                        // Public: anyone can check availability/blocked periods for a listing
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/bookings/listing/*/blocked",
+                                "/bookings/listing/*/available").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
