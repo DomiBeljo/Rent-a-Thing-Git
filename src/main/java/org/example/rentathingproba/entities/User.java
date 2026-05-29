@@ -2,8 +2,7 @@ package org.example.rentathingproba.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -15,6 +14,9 @@ import java.util.List;
 @Table(name = "users")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 //Works with spring security and provides all with users  informtaion(UserDetails):
 public class User implements UserDetails {
     @Id
@@ -33,6 +35,14 @@ public class User implements UserDetails {
 
     private boolean enabled;
 
+    @Column(name = "rating_sum", nullable = false)
+    @Builder.Default
+    private double ratingSum = 0.0;
+
+    @Column(name = "rating_count", nullable = false)
+    @Builder.Default
+    private int ratingCount = 0;
+
     @JsonIgnore
     @Column(name = "verification_code")
     private String verificationCode;
@@ -41,14 +51,6 @@ public class User implements UserDetails {
     @Column(name = "verification_expiration")
     private LocalDateTime verificationCodeExpiration;
 
-    public User(String username, String email, String password) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
-    }
-
-    public User() {
-    }
     //Methods for UserDetails
     @Override
     @JsonIgnore//role based authentication none
@@ -60,6 +62,10 @@ public class User implements UserDetails {
     public String getUsername() {
         return email;
     } //My mistake, it works but... yeah
+
+    public String getDisplayName() {
+        return username;
+    }
 
     @Override
     public boolean isAccountNonExpired() {

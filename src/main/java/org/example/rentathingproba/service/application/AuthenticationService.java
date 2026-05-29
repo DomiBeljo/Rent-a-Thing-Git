@@ -41,7 +41,11 @@ public class AuthenticationService {
     public User signUp(RegisteredUserDTO input){
         log.info("Registering new user: username='{}', email='{}' ", input.getUsername(), input.getEmail());
 
-        User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
+        User user = User.builder()
+                .username(input.getUsername())
+                .email(input.getEmail())
+                .password(passwordEncoder.encode(input.getPassword()))
+                .build();
         user.setVerificationCode(generateVerificationCode());
         user.setVerificationCodeExpiration(LocalDateTime.now().plusMinutes(15));
         user.setEnabled(false);

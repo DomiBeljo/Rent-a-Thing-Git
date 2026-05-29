@@ -1,7 +1,9 @@
 plugins {
     id 'java'
+    id 'idea'
     id 'org.springframework.boot' version '4.0.5'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'org.example'
@@ -18,6 +20,39 @@ repositories {
     mavenCentral()
 }
 
+sourceSets {
+    integrationTest {
+        java.srcDir 'src/integrationTest/java'
+        resources.srcDir 'src/integrationTest/resources'
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+    }
+    e2eTest {
+        java.srcDir 'src/e2eTest/java'
+        resources.srcDir 'src/e2eTest/resources'
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+
+idea {
+    module {
+        testSources.from(sourceSets.integrationTest.java.srcDirs)
+        testResources.from(sourceSets.integrationTest.resources.srcDirs)
+    }
+}
+
+configurations {
+    mockitoAgent
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+    e2eTestImplementation.extendsFrom testImplementation
+    e2eTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
@@ -26,19 +61,95 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-mail-test'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    mockitoAgent('org.mockito:mockito-core') { transitive = false }
 
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    integrationTestImplementation 'com.h2database:h2'
+    integrationTestCompileOnly 'org.projectlombok:lombok'
+    integrationTestAnnotationProcessor 'org.projectlombok:lombok'
+
+    e2eTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    e2eTestImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    e2eTestImplementation 'io.cucumber:cucumber-java:7.18.0'
+    e2eTestImplementation 'io.cucumber:cucumber-spring:7.18.0'
+    e2eTestImplementation 'io.cucumber:cucumber-junit-platform-engine:7.18.0'
+    e2eTestImplementation 'org.junit.platform:junit-platform-suite:1.11.3'
+    e2eTestCompileOnly 'org.projectlombok:lombok'
+    e2eTestAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+//Unit tests
 tasks.named('test') {
     useJUnitPlatform()
+    jvmArgs "-javaagent:${configurations.mockitoAgent.asPath}"
+    finalizedBy jacocoTestReport
+}
+
+//Integration test
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests against H2 mock database.'
+    group = 'verification'
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    useJUnitPlatform()
+    jvmArgs "-javaagent:${configurations.mockitoAgent.asPath}"
+    shouldRunAfter test
+}
+
+//Cucumber
+tasks.register('e2eTest', Test) {
+    description = 'Runs Cucumber E2E tests against a running backend.'
+    group = 'verification'
+    testClassesDirs = sourceSets.e2eTest.output.classesDirs
+    classpath = sourceSets.e2eTest.runtimeClasspath
+    useJUnitPlatform()
+    shouldRunAfter integrationTest
+}
+
+//JaCoCo test coverage
+jacoco {
+    toolVersion = '0.8.13'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('reports/jacoco/html')
+    }
+    sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(files(sourceSets.main.output.classesDirs).collect {
+        fileTree(it) {
+            exclude 'org/example/rentathingproba/config/**',
+                    'org/example/rentathingproba/controllers/**'
+        }
+    })
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.70
+            }
+        }
+    }
+    classDirectories.setFrom(files(sourceSets.main.output.classesDirs).collect {
+        fileTree(it) {
+            exclude 'org/example/rentathingproba/config/**',
+                    'org/example/rentathingproba/controllers/**'
+        }
+    })
 }
