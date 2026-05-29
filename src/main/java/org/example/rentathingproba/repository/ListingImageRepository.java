@@ -1,5 +1,3 @@
-
-
 package org.example.rentathingproba.repository;
 
 import org.example.rentathingproba.entities.ListingImage;

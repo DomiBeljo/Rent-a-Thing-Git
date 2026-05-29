@@ -6,29 +6,27 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "listing_images")
+@Table(name = "user_favourites",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "listing_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
-public class ListingImage {
+public class UserFavourite {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "listing_id", nullable = false)
     private Listing listing;
 
-    @Column(nullable = false)
-    private String url;
-
-    @Column(name = "sort_order", nullable = false)
-    private int sortOrder;
-
-    public ListingImage(Listing listing, String url, int sortOrder) {
+    public UserFavourite(User user, Listing listing) {
+        this.user = user;
         this.listing = listing;
-        this.url = url;
-        this.sortOrder = sortOrder;
     }
 }
