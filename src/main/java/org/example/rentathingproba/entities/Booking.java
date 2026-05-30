@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,7 +15,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Booking {
 
-    public enum Status { PENDING, CONFIRMED, CANCELLED, COMPLETED }
+    public enum Status {
+        PENDING,    // Renter poslao zahtjev, čeka ownera
+        CONFIRMED,  // Owner potvrdio, generiran PIN
+        ACTIVE,     // Renter preuzeo item (PIN unesen)
+        COMPLETED,  // Item vraćen
+        CANCELLED,  // Otkazan od strane korisnika
+        EXPIRED     // Automatski odbijen nakon 24h
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,8 +55,24 @@ public class Booking {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "expires_at", nullable = false)
+    private LocalDateTime expiresAt;
+
+    @Column(name = "pickup_pin", length = 4)
+    private String pickupPin;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conversation_id")
+    private Conversation conversation;
+
+    @Column(name = "reviewed")
+    private Boolean reviewed = false;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.expiresAt == null) {
+            this.expiresAt = LocalDateTime.now().plusHours(24);
+        }
     }
 }

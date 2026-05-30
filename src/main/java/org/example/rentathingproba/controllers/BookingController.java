@@ -12,22 +12,29 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/bookings")
 public class BookingController {
-
     private final BookingService bookingService;
 
     public BookingController(BookingService bookingService) {
         this.bookingService = bookingService;
     }
 
+    @PostMapping("/request")
+    public ResponseEntity<BookingResponseDTO> createRequest(
+            @RequestBody CreateBookingDTO dto,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(bookingService.createBookingRequest(dto, currentUser));
+    }
+
     @PostMapping
     public ResponseEntity<BookingResponseDTO> create(
             @RequestBody CreateBookingDTO dto,
             @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(bookingService.createBooking(dto, currentUser));
+        return ResponseEntity.ok(bookingService.createBookingRequest(dto, currentUser));
     }
 
     @GetMapping("/my")
@@ -50,25 +57,48 @@ public class BookingController {
     }
 
     @GetMapping("/listing/{listingId}/available")
-    public ResponseEntity<java.util.Map<String, Boolean>> checkAvailability(
+    public ResponseEntity<Map<String, Boolean>> checkAvailability(
             @PathVariable Long listingId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         boolean available = bookingService.isAvailable(listingId, startDate, endDate);
-        return ResponseEntity.ok(java.util.Map.of("available", available));
+        return ResponseEntity.ok(Map.of("available", available));
     }
 
-    @PatchMapping("/{id}/confirm")
+    @PostMapping("/{id}/confirm")
     public ResponseEntity<BookingResponseDTO> confirm(
             @PathVariable Long id,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(bookingService.confirmBooking(id, currentUser));
     }
 
-    @PatchMapping("/{id}/cancel")
+    @PostMapping("/{id}/decline")
+    public ResponseEntity<BookingResponseDTO> decline(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(bookingService.declineBooking(id, currentUser));
+    }
+
+    @PostMapping("/{id}/cancel")
     public ResponseEntity<BookingResponseDTO> cancel(
             @PathVariable Long id,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(bookingService.cancelBooking(id, currentUser));
+    }
+
+    @PostMapping("/{id}/pickup")
+    public ResponseEntity<BookingResponseDTO> confirmPickup(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal User currentUser) {
+        String pin = body.get("pin");
+        return ResponseEntity.ok(bookingService.confirmPickup(id, pin, currentUser));
+    }
+
+    @PostMapping("/{id}/return")
+    public ResponseEntity<BookingResponseDTO> confirmReturn(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(bookingService.confirmReturn(id, currentUser));
     }
 }
