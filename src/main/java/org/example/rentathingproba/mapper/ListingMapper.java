@@ -47,7 +47,7 @@ public class ListingMapper {
                 l.getThings().getDescription(),
                 urls,
                 l.getUser().getId(),
-                l.getUser().getUsername()
+                l.getUser().getDisplayName()
         );
     }
 

@@ -15,7 +15,7 @@ public class ListingResponseDTO {
     private Long listingId;
     private BigDecimal price;
     private String location;
-    private boolean isAvailable;
+    private Boolean isAvailable;
     private LocalDateTime createdAt;
     private BigDecimal securityDeposit;
 
