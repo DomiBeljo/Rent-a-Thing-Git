@@ -79,4 +79,9 @@ public class ListingController {
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(listingService.getMapMarkers(category, currentUser));
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<ListingResponseDTO>> getAllAvailableListings() {
+        return ResponseEntity.ok(listingService.getAllAvailableListingDTOs());
+    }
 }
