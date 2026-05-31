@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -23,16 +24,10 @@ public class BookingController {
         this.bookingService = bookingService;
     }
 
+    // ✅ FIX: Kept only /request — removed the duplicate bare POST /bookings
     @PostMapping("/request")
     public ResponseEntity<BookingResponseDTO> createRequest(
-            @RequestBody CreateBookingDTO dto,
-            @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(bookingService.createBookingRequest(dto, currentUser));
-    }
-
-    @PostMapping
-    public ResponseEntity<BookingResponseDTO> create(
-            @RequestBody CreateBookingDTO dto,
+            @Valid @RequestBody CreateBookingDTO dto,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(bookingService.createBookingRequest(dto, currentUser));
     }
@@ -100,5 +95,14 @@ public class BookingController {
             @PathVariable Long id,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(bookingService.confirmReturn(id, currentUser));
+    }
+
+    // ✅ FIX 1: Dedicated PIN endpoint — requires auth, only CONFIRMED/ACTIVE bookings
+    @GetMapping("/{id}/pin")
+    public ResponseEntity<Map<String, String>> getPin(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+        String pin = bookingService.getPickupPin(id, currentUser);
+        return ResponseEntity.ok(Map.of("pin", pin));
     }
 }

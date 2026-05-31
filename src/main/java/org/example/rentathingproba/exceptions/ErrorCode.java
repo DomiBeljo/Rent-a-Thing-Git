@@ -1,6 +1,6 @@
 package org.example.rentathingproba.exceptions;
 
-//Error codes for frontend
+// Error codes for frontend
 public enum ErrorCode {
     AUTH_ACCOUNT_NOT_VERIFIED,
     AUTH_INVALID_CREDENTIALS,
@@ -8,8 +8,6 @@ public enum ErrorCode {
     AUTH_VERIFICATION_CODE_EXPIRED,
     AUTH_VERIFICATION_CODE_INVALID,
     AUTH_UNAUTHORIZED,
-
-    //new bugs
     AUTH_TOKEN_EXPIRED,
     AUTH_TOKEN_INVALID,
 
@@ -21,8 +19,10 @@ public enum ErrorCode {
     LISTING_NOT_FOUND,
     LISTING_OWNERSHIP_REQUIRED,
 
+    BOOKING_NOT_FOUND,    // ✅ NEW
+    BOOKING_INVALID_STATE, // ✅ NEW — za IllegalStateException u booking flowu
+
     VALIDATION_INVALID_INPUT,
 
-    //Generic
     INTERNAL_ERROR
 }

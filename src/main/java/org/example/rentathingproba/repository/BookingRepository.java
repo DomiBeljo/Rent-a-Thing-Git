@@ -8,11 +8,24 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByListingIdOrderByStartDateAsc(Long listingId);
     List<Booking> findByRenterIdOrderByStartDateDesc(Long renterId);
+
+    @Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.listing l
+        JOIN FETCH l.things
+        JOIN FETCH l.user
+        JOIN FETCH b.renter
+        LEFT JOIN FETCH l.images
+        LEFT JOIN FETCH b.conversation
+        WHERE b.id = :id
+    """)
+    Optional<Booking> findByIdWithDetails(@Param("id") Long id);
 
     @Query("""
         SELECT COUNT(b) > 0 FROM Booking b

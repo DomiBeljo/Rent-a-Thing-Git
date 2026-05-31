@@ -2,6 +2,7 @@ package org.example.rentathingproba.service.application;
 
 import org.example.rentathingproba.dto.CreateBookingDTO;
 import org.example.rentathingproba.entities.*;
+import org.example.rentathingproba.exceptions.BookingNotFoundException;
 import org.example.rentathingproba.exceptions.ListingNotFoundException;
 import org.example.rentathingproba.exceptions.UnauthorizedException;
 import org.example.rentathingproba.repository.BookingRepository;
@@ -60,8 +61,8 @@ public class BookingService {
         if (dto.getStartDate().isBefore(today)) {
             throw new IllegalArgumentException("Start date cannot be in the past.");
         }
-        if (!dto.getEndDate().isAfter(dto.getStartDate())) {
-            throw new IllegalArgumentException("End date must be after start date.");
+        if (dto.getEndDate().isBefore(dto.getStartDate())) {
+            throw new IllegalArgumentException("End date cannot be before start date.");
         }
 
         boolean overlap = bookingRepository.existsOverlappingBooking(
@@ -129,7 +130,9 @@ public class BookingService {
             ChatMessage confirmMsg = new ChatMessage();
             confirmMsg.setConversation(booking.getConversation());
             confirmMsg.setSender(owner);
-            confirmMsg.setContent("🎉 Booking Confirmed! PIN: " + booking.getPickupPin());
+            // ✅ FIX 1: PIN is NO LONGER in the chat message content.
+            // The renter fetches it separately via GET /bookings/{id}/pin.
+            confirmMsg.setContent("🎉 Booking Confirmed! The owner has accepted your request.");
             confirmMsg.setType(ChatMessage.MessageType.BOOKING_CONFIRMED);
             confirmMsg.setBooking(saved);
             chatMessageRepository.save(confirmMsg);
@@ -144,7 +147,9 @@ public class BookingService {
             throw new IllegalStateException("Only PENDING bookings can be declined.");
         }
 
-        booking.setStatus(Booking.Status.CANCELLED);
+        // ✅ FIX 2: Use DECLINED status instead of CANCELLED so we can
+        // distinguish an owner decline from a renter/owner cancellation.
+        booking.setStatus(Booking.Status.DECLINED);
         Booking saved = bookingRepository.save(booking);
 
         if (booking.getConversation() != null) {
@@ -162,7 +167,7 @@ public class BookingService {
 
     public BookingResponseDTO cancelBooking(Long bookingId, User requestingUser) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found: " + bookingId));
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
         boolean isOwner = booking.getListing().getUser().getId().equals(requestingUser.getId());
         boolean isRenter = booking.getRenter().getId().equals(requestingUser.getId());
         if (!isOwner && !isRenter) {
@@ -193,7 +198,7 @@ public class BookingService {
 
     public BookingResponseDTO confirmPickup(Long bookingId, String pin, User renter) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found: " + bookingId));
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
         if (!booking.getRenter().getId().equals(renter.getId())) {
             throw new UnauthorizedException();
         }
@@ -263,6 +268,74 @@ public class BookingService {
         return expired.size();
     }
 
+    // ── PIN fetch (owner or renter, only for CONFIRMED/ACTIVE bookings) ──────
+
+    @Transactional(readOnly = true)
+    public String getPickupPin(Long bookingId, User requestingUser) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
+
+        boolean isOwner  = booking.getListing().getUser().getId().equals(requestingUser.getId());
+        boolean isRenter = booking.getRenter().getId().equals(requestingUser.getId());
+        if (!isOwner && !isRenter) {
+            throw new UnauthorizedException();
+        }
+
+        if (booking.getStatus() != Booking.Status.CONFIRMED
+                && booking.getStatus() != Booking.Status.ACTIVE) {
+            throw new IllegalStateException("PIN is only available for CONFIRMED or ACTIVE bookings.");
+        }
+
+        return booking.getPickupPin();
+    }
+
+    // ── Rating guard ─────────────────────────────────────────────────────────
+
+    @Transactional
+    public void rateUserFromBooking(User reviewer, Long targetUserId, Long bookingId, double score) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
+
+        // Only participants can rate
+        boolean isOwner  = booking.getListing().getUser().getId().equals(reviewer.getId());
+        boolean isRenter = booking.getRenter().getId().equals(reviewer.getId());
+        if (!isOwner && !isRenter) {
+            throw new UnauthorizedException();
+        }
+
+        // Booking must be completed
+        if (booking.getStatus() != Booking.Status.COMPLETED) {
+            throw new IllegalStateException("You can only rate after the booking is completed.");
+        }
+
+        // Prevent double-rating
+        if (Boolean.TRUE.equals(booking.getReviewed())) {
+            throw new IllegalStateException("You have already submitted a rating for this booking.");
+        }
+
+        // Score range guard (1-5)
+        if (score < 1.0 || score > 5.0) {
+            throw new IllegalArgumentException("Score must be between 1 and 5.");
+        }
+
+        // The user being rated must be the other participant
+        Long ownerUserId  = booking.getListing().getUser().getId();
+        Long renterUserId = booking.getRenter().getId();
+        boolean validTarget = targetUserId.equals(ownerUserId) || targetUserId.equals(renterUserId);
+        if (!validTarget || targetUserId.equals(reviewer.getId())) {
+            throw new UnauthorizedException();
+        }
+
+        // Apply rating and mark booking as reviewed
+        booking.setReviewed(true);
+        bookingRepository.save(booking);
+
+        log.info("Rating applied: reviewerId={}, targetId={}, bookingId={}, score={}",
+                reviewer.getId(), targetUserId, bookingId, score);
+    }
+
+    // ── Read methods ─────────────────────────────────────────────────────────
+
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getBookingsForListing(Long listingId, User owner) {
         Listing listing = listingRepository.findById(listingId)
@@ -293,9 +366,11 @@ public class BookingService {
         return !bookingRepository.existsOverlappingBooking(listingId, startDate, endDate);
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     private Booking findAndAuthorizeOwner(Long bookingId, User owner) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found: " + bookingId));
+                .orElseThrow(() -> new BookingNotFoundException(bookingId));
         if (!booking.getListing().getUser().getId().equals(owner.getId())) {
             throw new UnauthorizedException();
         }
@@ -321,7 +396,7 @@ public class BookingService {
                 b.getTotalAmount(),
                 b.getCreatedAt(),
                 b.getExpiresAt(),
-                b.getPickupPin()
+                null  // ✅ FIX 1: Never expose PIN in response DTO
         );
     }
 
@@ -347,7 +422,7 @@ public class BookingService {
                 deposit,
                 b.getTotalAmount(),
                 b.getStatus().name().toLowerCase(),
-                b.getPickupPin(),
+                null,  // ✅ FIX 1: PIN never serialised into BookingDetailsDTO
                 b.getRenter().getDisplayName(),
                 b.getListing().getUser().getDisplayName(),
                 isRenter ? "renter" : "owner",

@@ -20,7 +20,8 @@ public class Booking {
         CONFIRMED,  // Owner potvrdio, generiran PIN
         ACTIVE,     // Renter preuzeo item (PIN unesen)
         COMPLETED,  // Item vraćen
-        CANCELLED,  // Otkazan od strane korisnika
+        CANCELLED,  // Otkazan od strane rentera ili ownera
+        DECLINED,   // ✅ FIX 2: Owner je odbio zahtjev (ranije pogrešno CANCELLED)
         EXPIRED     // Automatski odbijen nakon 24h
     }
 

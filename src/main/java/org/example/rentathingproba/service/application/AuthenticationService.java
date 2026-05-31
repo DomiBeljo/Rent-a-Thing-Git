@@ -22,8 +22,6 @@ import java.time.LocalDateTime;
 public class AuthenticationService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
-
-    //better verification code (Thread safe).
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
@@ -31,15 +29,18 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
 
-    public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, EmailService emailService) {
+    public AuthenticationService(UserRepository userRepository,
+                                 PasswordEncoder passwordEncoder,
+                                 AuthenticationManager authenticationManager,
+                                 EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.emailService = emailService;
     }
 
-    public User signUp(RegisteredUserDTO input){
-        log.info("Registering new user: username='{}', email='{}' ", input.getUsername(), input.getEmail());
+    public User signUp(RegisteredUserDTO input) {
+        log.info("Registering new user: username='{}', email='{}'", input.getUsername(), input.getEmail());
 
         User user = User.builder()
                 .username(input.getUsername())
@@ -55,15 +56,15 @@ public class AuthenticationService {
 
         log.info("User registered successfully: id={}", saved.getId());
         return saved;
-    } //da kod bude pregledniji: mapper/converter
+    }
 
-    public User authenticate(LoginUserDTO input){
+    public User authenticate(LoginUserDTO input) {
         log.info("Authentication attempt for email='{}'", input.getEmail());
 
         User user = userRepository.findByEmail(input.getEmail())
                 .orElseThrow(() -> new UserNotFoundException(input.getEmail()));
 
-        if (!user.isEnabled()){
+        if (!user.isEnabled()) {
             throw new AccountNotVerifiedException();
         }
 
@@ -75,15 +76,17 @@ public class AuthenticationService {
         return user;
     }
 
-    public void verifyUser(VerifiedUserDTO input){
+    public void verifyUser(VerifiedUserDTO input) {
         User user = userRepository.findByEmail(input.getEmail())
                 .orElseThrow(() -> new UserNotFoundException(input.getEmail()));
 
-        if (user.isEnabled()){
-            throw new AccountNotVerifiedException();
+        // ✅ FIX 5: Bila je AccountNotVerifiedException — semantički potpuno krivo.
+        // Kad je account VEC verified, bacamo AccountAlreadyVerifiedException.
+        if (user.isEnabled()) {
+            throw new AccountAlreadyVerifiedException();
         }
 
-        if(user.getVerificationCodeExpiration().isBefore(LocalDateTime.now())){
+        if (user.getVerificationCodeExpiration().isBefore(LocalDateTime.now())) {
             throw new VerificationCodeExpiredException();
         }
 
@@ -97,15 +100,13 @@ public class AuthenticationService {
         userRepository.save(user);
 
         log.info("User verified successfully: email='{}'", input.getEmail());
-
     }
 
-    //resendanje verification codea.
-    public void resendVerificationCode(String email){
+    public void resendVerificationCode(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(email));
 
-        if (user.isEnabled()){
+        if (user.isEnabled()) {
             throw new AccountAlreadyVerifiedException();
         }
 
@@ -156,8 +157,7 @@ public class AuthenticationService {
                 """.formatted(username, verificationCode);
     }
 
-
-    private String generateVerificationCode(){
+    private String generateVerificationCode() {
         int code = SECURE_RANDOM.nextInt(900000) + 100000;
         return String.valueOf(code);
     }
