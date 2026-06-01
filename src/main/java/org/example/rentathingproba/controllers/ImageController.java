@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,9 +20,6 @@ public class ImageController {
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
-
-    @Value("${app.base-url:http://localhost:8080}")
-    private String baseUrl;
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<List<String>> uploadImages(
@@ -45,7 +43,13 @@ public class ImageController {
             Path filePath = uploadPath.resolve(fileName);
             Files.write(filePath, file.getBytes());
 
-            urls.add(baseUrl + "/images/" + fileName);
+            // Automatski generira točan URL s pravim IP-jem, portom i /api context-pathom
+            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/images/")
+                    .path(fileName)
+                    .toUriString();
+
+            urls.add(fileUrl);
         }
 
         return ResponseEntity.ok(urls);

@@ -27,6 +27,8 @@ public class ListingResponseDTO {
 
     private Long userId;
     private String userName;
+
+
 }
 
 

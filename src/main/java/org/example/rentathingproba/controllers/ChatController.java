@@ -51,7 +51,7 @@ public class ChatController {
         return ResponseEntity.ok(chatService.sendMessage(id, dto.getContent(), currentUser));
     }
 
-    @PatchMapping("/{id}/read")
+    @PostMapping("/{id}/read")
     public ResponseEntity<Void> markRead(
             @PathVariable Long id,
             @AuthenticationPrincipal User currentUser) {

@@ -182,4 +182,12 @@ public class ListingService {
                 avgRating
         );
     }
+
+    @Transactional(readOnly = true)
+    public List<ListingResponseDTO> getAllAvailableListingDTOs() {
+        List<Listing> allListings = listingRepository.findAllAvailableWithThings();
+        return allListings.stream()
+                .map(listingMapper::toResponse)
+                .collect(Collectors.toList());
+    }
 }

@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,6 +13,18 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ChatMessage {
 
+    public enum MessageType {
+        TEXT,
+        BOOKING_REQUEST,
+        BOOKING_CONFIRMED,
+        BOOKING_DECLINED,
+        BOOKING_EXPIRED,
+        BOOKING_CANCELLED,
+        PICKUP_CONFIRMED,
+        RETURN_CONFIRMED,
+        REVIEW
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,7 +33,6 @@ public class ChatMessage {
     @JoinColumn(name = "conversation_id", nullable = false)
     private Conversation conversation;
 
-    /** The user who wrote this message */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
@@ -33,9 +43,16 @@ public class ChatMessage {
     @Column(name = "sent_at", nullable = false)
     private LocalDateTime sentAt;
 
-    /** False until the other participant fetches/reads this conversation */
     @Column(name = "is_read", nullable = false)
     private boolean read = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_type", nullable = false, length = 50)
+    private MessageType type = MessageType.TEXT;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id")
+    private Booking booking;
 
     @PrePersist
     protected void onCreate() {

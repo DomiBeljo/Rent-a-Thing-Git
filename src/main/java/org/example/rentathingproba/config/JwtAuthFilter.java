@@ -6,7 +6,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.example.rentathingproba.service.infrastructure.JwtService;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -36,9 +35,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
+    // ✅ ISPRAVLJENO: Koristimo getServletPath() umjesto getRequestURI()
+    // getRequestURI() vraća /api/auth/... (uključuje context-path)
+    // getServletPath() vraća /auth/... (bez context-patha)
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return request.getRequestURI().startsWith("/auth/");
+        String path = request.getServletPath();
+        return path.startsWith("/auth/");
     }
 
     @Override
@@ -50,19 +53,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
+        // ✅ DEBUG LOGGING
+        log.debug("[JWT_FILTER] Request: {} {}", request.getMethod(), request.getServletPath());
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.debug("[JWT_FILTER] No Bearer token found, skipping filter");
             filterChain.doFilter(request, response);
             return;
         }
-        //Handles exceptions correctly now.
+
         final String jwt = authHeader.substring(7);
+        log.debug("[JWT_FILTER] Token received: {}...", jwt.substring(0, Math.min(30, jwt.length())));
 
         try {
             final String userEmail = jwtService.extractUsername(jwt);
+            log.debug("[JWT_FILTER] Extracted email: {}", userEmail);
 
-            // Only authenticate if not already authenticated in this request
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+                log.debug("[JWT_FILTER] User loaded: {}", userDetails.getUsername());
 
                 if (jwtService.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -70,24 +79,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.debug("JWT authentication set for user: {}", userEmail);
+                    log.info("[JWT_FILTER] ✅ Authentication SET for user: {}", userEmail);
                 } else {
-                    log.warn("JWT validation failed for user: {}", userEmail);
+                    log.warn("[JWT_FILTER] ❌ Token validation FAILED for user: {}", userEmail);
                 }
             }
-
             filterChain.doFilter(request, response);
-
         } catch (ExpiredJwtException ex) {
-            log.warn("Expired JWT token on request to {}: {}", request.getRequestURI(), ex.getMessage());
-            filterChain.doFilter(request, response);
-
-            } catch (JwtException ex) {
-            log.warn("Invalid JWT token on request to {}: {}", request.getRequestURI(), ex.getMessage());
+            log.warn("[JWT_FILTER] ❌ Expired JWT: {}", ex.getMessage());
+            // ✅ VAŽNO: Ne nastavljamo filter chain, vraćamo 401
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Token expired. Please login again.\"}");
+        } catch (JwtException ex) {
+            log.warn("[JWT_FILTER] ❌ Invalid JWT: {}", ex.getMessage());
             handlerExceptionResolver.resolveException(request, response, null, ex);
-
-            } catch (Exception e) {
-            log.warn("Unexpected error in JWT filter: {}", e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("[JWT_FILTER] ❌ Unexpected error: {}", e.getMessage(), e);
             handlerExceptionResolver.resolveException(request, response, null, e);
         }
     }

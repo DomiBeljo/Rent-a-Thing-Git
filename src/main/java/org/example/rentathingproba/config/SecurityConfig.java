@@ -55,11 +55,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        //configuration.setAllowedOriginPatterns(List.of("*")); //When in production change this
-        configuration.setAllowedOrigins(allowedOrigins);
+        // 🌟 Dopušta bilo koju IP adresu (samo za razvoj!)
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of("*")); // 🌟 Dopušta sve headere
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
