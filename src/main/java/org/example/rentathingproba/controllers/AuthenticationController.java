@@ -6,8 +6,8 @@ import org.example.rentathingproba.dto.VerifiedUserDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.responses.LoginResponse;
 import org.example.rentathingproba.responses.MessageResponse;
-import org.example.rentathingproba.service.application.AuthenticationService;
-import org.example.rentathingproba.service.infrastructure.JwtService;
+import org.example.rentathingproba.service.AuthenticationService;
+import org.example.rentathingproba.service.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

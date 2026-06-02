@@ -6,7 +6,7 @@ import org.example.rentathingproba.dto.VerifiedUserDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.exceptions.*;
 import org.example.rentathingproba.repository.UserRepository;
-import org.example.rentathingproba.service.application.AuthenticationService;
+import org.example.rentathingproba.service.AuthenticationService;
 import org.example.rentathingproba.notification.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

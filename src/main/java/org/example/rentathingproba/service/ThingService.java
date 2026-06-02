@@ -1,11 +1,10 @@
-package org.example.rentathingproba.service.application;
+package org.example.rentathingproba.service;
 
 import org.example.rentathingproba.dto.ThingDTO;
 import org.example.rentathingproba.entities.Thing;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.exceptions.ThingNotFoundException;
 import org.example.rentathingproba.exceptions.ThingOwnershipException;
-import org.example.rentathingproba.exceptions.UnauthorizedException;
 import org.example.rentathingproba.mapper.ThingMapper;
 import org.example.rentathingproba.repository.ThingRepository;
 import org.example.rentathingproba.responses.ThingResponseDTO;

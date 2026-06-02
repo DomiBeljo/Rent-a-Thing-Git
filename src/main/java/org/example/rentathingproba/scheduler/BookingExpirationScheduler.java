@@ -1,6 +1,6 @@
 package org.example.rentathingproba.scheduler;
 
-import org.example.rentathingproba.service.application.BookingService;
+import org.example.rentathingproba.service.BookingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

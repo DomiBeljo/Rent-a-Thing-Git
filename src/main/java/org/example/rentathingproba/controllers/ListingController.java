@@ -4,7 +4,7 @@ import org.example.rentathingproba.dto.ListingDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.responses.ListingResponseDTO;
 import org.example.rentathingproba.responses.MapMarkerDTO;
-import org.example.rentathingproba.service.application.ListingService;
+import org.example.rentathingproba.service.ListingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;

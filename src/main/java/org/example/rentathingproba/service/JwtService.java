@@ -1,4 +1,4 @@
-package org.example.rentathingproba.service.infrastructure;
+package org.example.rentathingproba.service;
 
 
 import io.jsonwebtoken.Claims;

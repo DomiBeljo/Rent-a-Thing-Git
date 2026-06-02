@@ -8,7 +8,7 @@ import org.example.rentathingproba.exceptions.ThingOwnershipException;
 import org.example.rentathingproba.mapper.ThingMapper;
 import org.example.rentathingproba.repository.ThingRepository;
 import org.example.rentathingproba.responses.ThingResponseDTO;
-import org.example.rentathingproba.service.application.ThingService;
+import org.example.rentathingproba.service.ThingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

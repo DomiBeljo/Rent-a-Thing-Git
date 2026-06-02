@@ -1,7 +1,7 @@
 package org.example.rentathingproba.unit.scheduler;
 
 import org.example.rentathingproba.scheduler.BookingExpirationScheduler;
-import org.example.rentathingproba.service.application.BookingService;
+import org.example.rentathingproba.service.BookingService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

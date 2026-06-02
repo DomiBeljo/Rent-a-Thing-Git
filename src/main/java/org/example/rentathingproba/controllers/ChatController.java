@@ -5,7 +5,7 @@ import org.example.rentathingproba.dto.SendMessageDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.responses.ChatMessageResponseDTO;
 import org.example.rentathingproba.responses.ConversationResponseDTO;
-import org.example.rentathingproba.service.application.ChatService;
+import org.example.rentathingproba.service.ChatService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;

@@ -4,7 +4,7 @@ import org.example.rentathingproba.dto.CreateBookingDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.responses.BlockedPeriodDTO;
 import org.example.rentathingproba.responses.BookingResponseDTO;
-import org.example.rentathingproba.service.application.BookingService;
+import org.example.rentathingproba.service.BookingService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

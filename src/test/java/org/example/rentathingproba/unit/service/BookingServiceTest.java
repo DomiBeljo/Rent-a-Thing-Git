@@ -11,7 +11,7 @@ import org.example.rentathingproba.repository.ConversationRepository;
 import org.example.rentathingproba.repository.ListingRepository;
 import org.example.rentathingproba.responses.BlockedPeriodDTO;
 import org.example.rentathingproba.responses.BookingResponseDTO;
-import org.example.rentathingproba.service.application.BookingService;
+import org.example.rentathingproba.service.BookingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

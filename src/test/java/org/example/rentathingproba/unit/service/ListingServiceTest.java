@@ -14,7 +14,7 @@ import org.example.rentathingproba.mapper.ListingMapper;
 import org.example.rentathingproba.repository.ListingRepository;
 import org.example.rentathingproba.repository.ThingRepository;
 import org.example.rentathingproba.responses.ListingResponseDTO;
-import org.example.rentathingproba.service.application.ListingService;
+import org.example.rentathingproba.service.ListingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

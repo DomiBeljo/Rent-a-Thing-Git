@@ -1,4 +1,4 @@
-package org.example.rentathingproba.service.application;
+package org.example.rentathingproba.service;
 
 import org.example.rentathingproba.entities.*;
 import org.example.rentathingproba.exceptions.ListingNotFoundException;

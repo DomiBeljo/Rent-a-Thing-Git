@@ -1,7 +1,7 @@
 package org.example.rentathingproba.unit.infrastructure;
 
 import io.jsonwebtoken.Claims;
-import org.example.rentathingproba.service.infrastructure.JwtService;
+import org.example.rentathingproba.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

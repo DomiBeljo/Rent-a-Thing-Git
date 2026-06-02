@@ -1,4 +1,4 @@
-package org.example.rentathingproba.service.application;
+package org.example.rentathingproba.service;
 
 import jakarta.mail.MessagingException;
 import org.example.rentathingproba.dto.LoginUserDTO;
