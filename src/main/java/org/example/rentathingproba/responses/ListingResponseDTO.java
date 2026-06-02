@@ -10,8 +10,9 @@ import java.util.List;
 
 @Getter
 @Setter
-@AllArgsConstructor //so user hash doesnt get exposed
+@AllArgsConstructor
 public class ListingResponseDTO {
+
     private Long listingId;
     private BigDecimal price;
     private String location;
@@ -28,7 +29,7 @@ public class ListingResponseDTO {
     private Long userId;
     private String userName;
 
-
+    // NOVO
+    private Double latitude;
+    private Double longitude;
 }
-
-

@@ -17,16 +17,25 @@ public class ListingMapper {
         listing.setUser(owner);
         listing.setPrice(dto.getPrice());
         listing.setSecurityDeposit(dto.getSecurityDeposit());
+
         listing.setLocation(dto.getLocation());
+        listing.setLatitude(dto.getLatitude());
+        listing.setLongitude(dto.getLongitude());
+
         listing.setIsAvailable(true);
+
         copyImagesFromThing(listing, thing);
+
         return listing;
     }
 
     public void updateEntity(Listing listing, ListingDTO dto) {
         listing.setPrice(dto.getPrice());
         listing.setSecurityDeposit(dto.getSecurityDeposit());
+
         listing.setLocation(dto.getLocation());
+        listing.setLatitude(dto.getLatitude());
+        listing.setLongitude(dto.getLongitude());
     }
 
     public ListingResponseDTO toResponse(Listing l) {
@@ -41,13 +50,19 @@ public class ListingMapper {
                 l.getIsAvailable(),
                 l.getCreatedAt(),
                 l.getSecurityDeposit(),
+
                 l.getThings().getId(),
                 l.getThings().getName(),
                 l.getThings().getCategory(),
                 l.getThings().getDescription(),
+
                 urls,
+
                 l.getUser().getId(),
-                l.getUser().getDisplayName()
+                l.getUser().getDisplayName(),
+
+                l.getLatitude(),
+                l.getLongitude()
         );
     }
 

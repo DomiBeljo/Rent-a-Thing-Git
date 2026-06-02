@@ -6,8 +6,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "user_favourites",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "listing_id"}))
+@Table(
+        name = "user_favourites",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "listing_id"}),
+        indexes = {
+                @Index(name = "idx_fav_user_id",    columnList = "user_id"),
+                @Index(name = "idx_fav_listing_id", columnList = "listing_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor

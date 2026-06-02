@@ -4,25 +4,36 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "bookings")
+@Table(
+        name = "bookings",
+        indexes = {
+                @Index(name = "idx_bookings_listing_id",   columnList = "listing_id"),
+                @Index(name = "idx_bookings_renter_id",    columnList = "renter_id"),
+                @Index(name = "idx_bookings_status",       columnList = "status"),
+                @Index(name = "idx_bookings_expires_at",   columnList = "expires_at"),
+                @Index(name = "idx_bookings_dates",        columnList = "listing_id, start_date, end_date"),
+                @Index(name = "idx_bookings_conv_id",      columnList = "conversation_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class Booking {
 
     public enum Status {
-        PENDING,    // Renter poslao zahtjev, čeka ownera
-        CONFIRMED,  // Owner potvrdio, generiran PIN
-        ACTIVE,     // Renter preuzeo item (PIN unesen)
-        COMPLETED,  // Item vraćen
-        CANCELLED,  // Otkazan od strane rentera ili ownera
-        DECLINED,   // ✅ FIX 2: Owner je odbio zahtjev (ranije pogrešno CANCELLED)
-        EXPIRED     // Automatski odbijen nakon 24h
+        PENDING,
+        CONFIRMED,
+        ACTIVE,
+        COMPLETED,
+        CANCELLED,
+        DECLINED,
+        EXPIRED
     }
 
     @Id

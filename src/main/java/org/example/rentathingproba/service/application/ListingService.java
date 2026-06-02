@@ -1,6 +1,7 @@
 package org.example.rentathingproba.service.application;
 
 import org.example.rentathingproba.dto.ListingDTO;
+import org.example.rentathingproba.email.central.ListingAction;
 import org.example.rentathingproba.email.central.ListingEventPublisher;
 import org.example.rentathingproba.entities.Listing;
 import org.example.rentathingproba.entities.Thing;
@@ -21,11 +22,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import org.example.rentathingproba.email.central.ListingAction;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+// PROMJENA: maknuto @Transactional s razine klase.
+// Read metode imaju @Transactional(readOnly = true) — Hibernate ne prati
+// promjene entiteta (dirty checking OFF), connection se ranije vraća u pool.
+// Write metode imaju @Transactional — eksplicitno i jasno.
 @Service
-@Transactional
 public class ListingService {
 
     private static final Logger log = LoggerFactory.getLogger(ListingService.class);
@@ -45,11 +51,14 @@ public class ListingService {
         this.listingEventPublisher = listingEventPublisher;
     }
 
+    // ── Write operacije ────────────────────────────────────────────────────
+
+    @Transactional
     public ListingResponseDTO createListing(ListingDTO dto, User owner) {
         log.info("Creating listing - thingId={}, owner={}, price={}, location={}, deposit={}",
                 dto.getThingId(), owner.getUsername(), dto.getPrice(), dto.getLocation(), dto.getSecurityDeposit());
 
-        Thing thing = thingRepository.findById(dto.getThingId())
+        Thing thing = thingRepository.findByIdWithImages(dto.getThingId())
                 .orElseThrow(() -> new ThingNotFoundException(dto.getThingId()));
 
         if (!thing.getUser().getId().equals(owner.getId())) {
@@ -66,8 +75,10 @@ public class ListingService {
         return listingMapper.toResponse(saved);
     }
 
+    @Transactional
     public ListingResponseDTO updateListing(Long listingId, ListingDTO dto, User requestingUser) {
-        Listing listing = listingRepository.findById(listingId)
+        // findByIdWithDetails fetch-a sve što mapper treba — nema lazy load
+        Listing listing = listingRepository.findByIdWithDetails(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
 
         if (!listing.getUser().getId().equals(requestingUser.getId())) {
@@ -83,8 +94,9 @@ public class ListingService {
         return listingMapper.toResponse(saved);
     }
 
+    @Transactional
     public void deleteListing(Long listingId, User requestingUser) {
-        Listing listing = listingRepository.findById(listingId)
+        Listing listing = listingRepository.findByIdWithDetails(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
 
         if (!listing.getUser().getId().equals(requestingUser.getId())) {
@@ -97,7 +109,9 @@ public class ListingService {
         listingEventPublisher.publish(this, listingId, requestingUser.getEmail(), requestingUser.getUsername(), ListingAction.DELETE);
     }
 
+    @Transactional
     public void isItAvailable(Long listingId, User requestingUser) {
+        // Za toggle treba samo id, user i isAvailable — findById je ok ovdje
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
 
@@ -111,10 +125,13 @@ public class ListingService {
         log.info("Listing availability toggled: id={}, isAvailable={}", listing.getId(), listing.getIsAvailable());
     }
 
+    // ── Read operacije ─────────────────────────────────────────────────────
+
     @Transactional(readOnly = true)
     public ListingResponseDTO getListingById(Long listingId) {
+        // findByIdWithDetails umjesto findById — mapper ne okida lazy load
         return listingMapper.toResponse(
-                listingRepository.findById(listingId)
+                listingRepository.findByIdWithDetails(listingId)
                         .orElseThrow(() -> new ListingNotFoundException(listingId))
         );
     }
@@ -130,13 +147,27 @@ public class ListingService {
     @Transactional(readOnly = true)
     public List<ListingResponseDTO> getRecommended() {
         log.info("Fetching recommended listings");
-        List<Listing> results = listingRepository.findRecommended();
-        log.info("Recommended listings fetched: count={}", results.size());
-        return results.stream().map(listingMapper::toResponse).collect(Collectors.toList());
+
+        // Staro: findRecommended() → native query bez JOIN FETCH →
+        //        svaki listingMapper.toResponse() radio 3+ lazy load querya
+        //
+        // Novo: 2 querya ukupno:
+        //   1) native RANDOM() → dohvati 3 ID-ja
+        //   2) findByIdsWithDetails() → JOIN FETCH sve u jednom queryu
+        List<Listing> randomListings = listingRepository.findRecommendedNative();
+        if (randomListings.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ids = randomListings.stream().map(Listing::getId).collect(Collectors.toList());
+        List<Listing> withDetails = listingRepository.findByIdsWithDetails(ids);
+
+        log.info("Recommended listings fetched: count={}", withDetails.size());
+        return withDetails.stream().map(listingMapper::toResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<ListingResponseDTO> getUserListing(Long userId) {
+        // findByUserId sada ima JOIN FETCH — nema N+1 lazy load
         return listingRepository.findByUserId(userId).stream()
                 .map(listingMapper::toResponse)
                 .collect(Collectors.toList());
@@ -153,6 +184,24 @@ public class ListingService {
                 .map(this::toMapMarker)
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public List<ListingResponseDTO> getAllAvailableListingDTOs() {
+        return listingRepository.findAllAvailableWithThings().stream()
+                .map(listingMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ListingResponseDTO> getListings(int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        return listingRepository.findAll(pageable)
+                .map(listingMapper::toResponse);
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
 
     private MapMarkerDTO toMapMarker(Listing listing) {
         String thumbnail = null;
@@ -179,15 +228,9 @@ public class ListingService {
                 listing.getIsAvailable(),
                 owner.getId(),
                 owner.getDisplayName(),
-                avgRating
+                avgRating,
+                listing.getLatitude(),
+                listing.getLongitude()
         );
-    }
-
-    @Transactional(readOnly = true)
-    public List<ListingResponseDTO> getAllAvailableListingDTOs() {
-        List<Listing> allListings = listingRepository.findAllAvailableWithThings();
-        return allListings.stream()
-                .map(listingMapper::toResponse)
-                .collect(Collectors.toList());
     }
 }

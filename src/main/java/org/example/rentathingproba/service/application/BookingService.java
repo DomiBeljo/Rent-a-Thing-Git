@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class BookingService {
+
     private static final Logger log = LoggerFactory.getLogger(BookingService.class);
     private static final SecureRandom PIN_RANDOM = new SecureRandom();
 
@@ -46,8 +46,12 @@ public class BookingService {
         this.chatMessageRepository = chatMessageRepository;
     }
 
+    // ── Write operacije ────────────────────────────────────────────────────
+
+    @Transactional
     public BookingResponseDTO createBookingRequest(CreateBookingDTO dto, User renter) {
-        Listing listing = listingRepository.findById(dto.getListingId())
+        // findByIdWithDetails fetch-a listing + things + user + images odjednom
+        Listing listing = listingRepository.findByIdWithDetails(dto.getListingId())
                 .orElseThrow(() -> new ListingNotFoundException(dto.getListingId()));
 
         if (listing.getUser().getId().equals(renter.getId())) {
@@ -74,9 +78,8 @@ public class BookingService {
 
         long days = ChronoUnit.DAYS.between(dto.getStartDate(), dto.getEndDate()) + 1;
         BigDecimal subtotal = listing.getPrice().multiply(BigDecimal.valueOf(days));
-        BigDecimal deposit = listing.getSecurityDeposit() != null
-                ? listing.getSecurityDeposit() : BigDecimal.ZERO;
-        BigDecimal total = subtotal.add(deposit);
+        BigDecimal deposit  = listing.getSecurityDeposit() != null ? listing.getSecurityDeposit() : BigDecimal.ZERO;
+        BigDecimal total    = subtotal.add(deposit);
 
         Conversation conversation = conversationRepository
                 .findByListingIdAndBuyerId(listing.getId(), renter.getId())
@@ -113,6 +116,7 @@ public class BookingService {
         return toResponse(saved);
     }
 
+    @Transactional
     public BookingResponseDTO confirmBooking(Long bookingId, User owner) {
         Booking booking = findAndAuthorizeOwner(bookingId, owner);
         if (booking.getStatus() != Booking.Status.PENDING) {
@@ -130,8 +134,6 @@ public class BookingService {
             ChatMessage confirmMsg = new ChatMessage();
             confirmMsg.setConversation(booking.getConversation());
             confirmMsg.setSender(owner);
-            // ✅ FIX 1: PIN is NO LONGER in the chat message content.
-            // The renter fetches it separately via GET /bookings/{id}/pin.
             confirmMsg.setContent("🎉 Booking Confirmed! The owner has accepted your request.");
             confirmMsg.setType(ChatMessage.MessageType.BOOKING_CONFIRMED);
             confirmMsg.setBooking(saved);
@@ -141,14 +143,13 @@ public class BookingService {
         return toResponse(saved);
     }
 
+    @Transactional
     public BookingResponseDTO declineBooking(Long bookingId, User owner) {
         Booking booking = findAndAuthorizeOwner(bookingId, owner);
         if (booking.getStatus() != Booking.Status.PENDING) {
             throw new IllegalStateException("Only PENDING bookings can be declined.");
         }
 
-        // ✅ FIX 2: Use DECLINED status instead of CANCELLED so we can
-        // distinguish an owner decline from a renter/owner cancellation.
         booking.setStatus(Booking.Status.DECLINED);
         Booking saved = bookingRepository.save(booking);
 
@@ -165,10 +166,12 @@ public class BookingService {
         return toResponse(saved);
     }
 
+    @Transactional
     public BookingResponseDTO cancelBooking(Long bookingId, User requestingUser) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithDetails(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(bookingId));
-        boolean isOwner = booking.getListing().getUser().getId().equals(requestingUser.getId());
+
+        boolean isOwner  = booking.getListing().getUser().getId().equals(requestingUser.getId());
         boolean isRenter = booking.getRenter().getId().equals(requestingUser.getId());
         if (!isOwner && !isRenter) {
             throw new UnauthorizedException();
@@ -196,9 +199,11 @@ public class BookingService {
         return toResponse(saved);
     }
 
+    @Transactional
     public BookingResponseDTO confirmPickup(Long bookingId, String pin, User renter) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithDetails(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(bookingId));
+
         if (!booking.getRenter().getId().equals(renter.getId())) {
             throw new UnauthorizedException();
         }
@@ -225,6 +230,7 @@ public class BookingService {
         return toResponse(saved);
     }
 
+    @Transactional
     public BookingResponseDTO confirmReturn(Long bookingId, User owner) {
         Booking booking = findAndAuthorizeOwner(bookingId, owner);
         if (booking.getStatus() != Booking.Status.ACTIVE) {
@@ -247,32 +253,52 @@ public class BookingService {
         return toResponse(saved);
     }
 
+    // ── Bulk expire (scheduler) ────────────────────────────────────────────
+    //
+    // Staro:
+    //   1) SELECT svi expired bookings
+    //   2) for-loop: booking.setStatus(EXPIRED) + save() = N UPDATE querya
+    //   3) za svaki: save chat message = N INSERT querya
+    //   Ukupno: 1 + 2N querya
+    //
+    // Novo:
+    //   1) UPDATE bookings SET status='EXPIRED' WHERE ... = 1 query za sve
+    //   2) SELECT samo upravo expiranih (za chat poruke) = 1 query
+    //   3) batch INSERT chat poruka = N INSERT (neizbježno, ali barem UPDATE je bulk)
+    //   Ukupno: 2 + N querya (N = broj expired, a UPDATE je sad 1 query)
+    @Transactional
     public int expirePendingBookings() {
-        List<Booking> expired = bookingRepository.findExpiredPendingBookings(LocalDateTime.now());
-        for (Booking booking : expired) {
-            booking.setStatus(Booking.Status.EXPIRED);
-            bookingRepository.save(booking);
+        LocalDateTime now   = LocalDateTime.now();
+        LocalDateTime since = now.minusMinutes(10); // scheduler se pokreće svakih 5-10 min
 
-            if (booking.getConversation() != null) {
-                ChatMessage expiredMsg = new ChatMessage();
-                expiredMsg.setConversation(booking.getConversation());
-                expiredMsg.setSender(booking.getRenter());
-                expiredMsg.setContent("⏰ Booking request expired after 24 hours");
-                expiredMsg.setType(ChatMessage.MessageType.BOOKING_EXPIRED);
-                expiredMsg.setBooking(booking);
-                chatMessageRepository.save(expiredMsg);
+        // Jedan bulk UPDATE umjesto N pojedinačnih save()
+        int count = bookingRepository.bulkExpirePendingBookings(now);
+
+        if (count > 0) {
+            // Dohvati upravo expirane za chat poruke
+            List<Booking> recentlyExpired = bookingRepository.findRecentlyExpired(since, now);
+            for (Booking booking : recentlyExpired) {
+                if (booking.getConversation() != null) {
+                    ChatMessage expiredMsg = new ChatMessage();
+                    expiredMsg.setConversation(booking.getConversation());
+                    expiredMsg.setSender(booking.getRenter());
+                    expiredMsg.setContent("⏰ Booking request expired after 24 hours");
+                    expiredMsg.setType(ChatMessage.MessageType.BOOKING_EXPIRED);
+                    expiredMsg.setBooking(booking);
+                    chatMessageRepository.save(expiredMsg);
+                }
+                log.info("Booking auto-expired: id={}, listingId={}", booking.getId(), booking.getListing().getId());
             }
-
-            log.info("Booking auto-expired: id={}, listingId={}", booking.getId(), booking.getListing().getId());
         }
-        return expired.size();
+
+        return count;
     }
 
-    // ── PIN fetch (owner or renter, only for CONFIRMED/ACTIVE bookings) ──────
+    // ── Read operacije ─────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public String getPickupPin(Long bookingId, User requestingUser) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithDetails(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(bookingId));
 
         boolean isOwner  = booking.getListing().getUser().getId().equals(requestingUser.getId());
@@ -289,36 +315,27 @@ public class BookingService {
         return booking.getPickupPin();
     }
 
-    // ── Rating guard ─────────────────────────────────────────────────────────
-
     @Transactional
     public void rateUserFromBooking(User reviewer, Long targetUserId, Long bookingId, double score) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithDetails(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(bookingId));
 
-        // Only participants can rate
         boolean isOwner  = booking.getListing().getUser().getId().equals(reviewer.getId());
         boolean isRenter = booking.getRenter().getId().equals(reviewer.getId());
         if (!isOwner && !isRenter) {
             throw new UnauthorizedException();
         }
 
-        // Booking must be completed
         if (booking.getStatus() != Booking.Status.COMPLETED) {
             throw new IllegalStateException("You can only rate after the booking is completed.");
         }
-
-        // Prevent double-rating
         if (Boolean.TRUE.equals(booking.getReviewed())) {
             throw new IllegalStateException("You have already submitted a rating for this booking.");
         }
-
-        // Score range guard (1-5)
         if (score < 1.0 || score > 5.0) {
             throw new IllegalArgumentException("Score must be between 1 and 5.");
         }
 
-        // The user being rated must be the other participant
         Long ownerUserId  = booking.getListing().getUser().getId();
         Long renterUserId = booking.getRenter().getId();
         boolean validTarget = targetUserId.equals(ownerUserId) || targetUserId.equals(renterUserId);
@@ -326,15 +343,12 @@ public class BookingService {
             throw new UnauthorizedException();
         }
 
-        // Apply rating and mark booking as reviewed
         booking.setReviewed(true);
         bookingRepository.save(booking);
 
         log.info("Rating applied: reviewerId={}, targetId={}, bookingId={}, score={}",
                 reviewer.getId(), targetUserId, bookingId, score);
     }
-
-    // ── Read methods ─────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getBookingsForListing(Long listingId, User owner) {
@@ -366,10 +380,10 @@ public class BookingService {
         return !bookingRepository.existsOverlappingBooking(listingId, startDate, endDate);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Helpers ────────────────────────────────────────────────────────────
 
     private Booking findAndAuthorizeOwner(Long bookingId, User owner) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithDetails(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(bookingId));
         if (!booking.getListing().getUser().getId().equals(owner.getId())) {
             throw new UnauthorizedException();
@@ -396,7 +410,7 @@ public class BookingService {
                 b.getTotalAmount(),
                 b.getCreatedAt(),
                 b.getExpiresAt(),
-                null  // ✅ FIX 1: Never expose PIN in response DTO
+                null
         );
     }
 
@@ -422,7 +436,7 @@ public class BookingService {
                 deposit,
                 b.getTotalAmount(),
                 b.getStatus().name().toLowerCase(),
-                null,  // ✅ FIX 1: PIN never serialised into BookingDetailsDTO
+                null,
                 b.getRenter().getDisplayName(),
                 b.getListing().getUser().getDisplayName(),
                 isRenter ? "renter" : "owner",

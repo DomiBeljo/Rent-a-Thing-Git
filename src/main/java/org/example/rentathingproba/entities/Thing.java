@@ -10,11 +10,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "things")
+@Table(
+        name = "things",
+        indexes = {
+                @Index(name = "idx_things_user_id",  columnList = "users_id"),
+                @Index(name = "idx_things_category", columnList = "category")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class Thing {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -45,10 +52,7 @@ public class Thing {
     private LocalDateTime createdAt;
 
     @PrePersist
-    protected void  onCreate()
-    {
+    protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
-
 }
-

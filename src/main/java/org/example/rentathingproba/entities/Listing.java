@@ -11,11 +11,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "listings")
+@Table(
+        name = "listings",
+        indexes = {
+                @Index(name = "idx_listings_is_available",   columnList = "is_available"),
+                @Index(name = "idx_listings_user_id",        columnList = "user_id"),
+                @Index(name = "idx_listings_user_available", columnList = "user_id, is_available"),
+                @Index(name = "idx_listings_things_id",      columnList = "things_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 public class Listing {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,7 +49,7 @@ public class Listing {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "security_deposit", nullable = true)
+    @Column(name = "security_deposit")
     private BigDecimal securityDeposit;
 
     @OneToMany(
@@ -53,8 +62,13 @@ public class Listing {
     private List<ListingImage> images = new ArrayList<>();
 
     @PrePersist
-    protected void  onCreate()
-    {
+    protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
 }

@@ -11,22 +11,17 @@ import java.math.BigDecimal;
 public class MapMarkerDTO {
 
     private Long listingId;
-
     private String location;
-
     private String name;
-
     private String category;
-
     private BigDecimal price;
-
     private String thumbnailUrl;
-
     private boolean isAvailable;
 
     private Long userId;
-
     private String userName;
-
     private double userRating;
+
+    private Double latitude;
+    private Double longitude;
 }

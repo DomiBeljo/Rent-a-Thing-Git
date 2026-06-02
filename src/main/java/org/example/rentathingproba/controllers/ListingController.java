@@ -5,9 +5,14 @@ import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.responses.ListingResponseDTO;
 import org.example.rentathingproba.responses.MapMarkerDTO;
 import org.example.rentathingproba.service.application.ListingService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -24,6 +29,7 @@ public class ListingController {
     @PostMapping
     public ResponseEntity<ListingResponseDTO> create(
             @RequestBody ListingDTO dto,
+
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(listingService.createListing(dto, currentUser));
     }
@@ -84,4 +90,16 @@ public class ListingController {
     public ResponseEntity<List<ListingResponseDTO>> getAllAvailableListings() {
         return ResponseEntity.ok(listingService.getAllAvailableListingDTOs());
     }
+
+    @GetMapping
+    public ResponseEntity<Page<ListingResponseDTO>> getListings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(
+                listingService.getListings(page, size)
+        );
+    }
+
+
 }
