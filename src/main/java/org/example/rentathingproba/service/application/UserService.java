@@ -55,8 +55,6 @@ public class UserService {
         return toDTO(user);
     }
 
-    // Favourites
-
     @Transactional(readOnly = true)
     public List<ListingResponseDTO> getFavourites(User user) {
         return favouriteRepository.findByUser(user).stream()
@@ -86,8 +84,6 @@ public class UserService {
                 .map(listing -> favouriteRepository.existsByUserAndListing(user, listing))
                 .orElse(false);
     }
-
-    //Rating
 
     @Transactional
     public void rateUser(Long targetUserId, double score) {

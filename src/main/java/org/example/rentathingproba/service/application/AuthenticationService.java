@@ -7,7 +7,7 @@ import org.example.rentathingproba.dto.VerifiedUserDTO;
 import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.exceptions.*;
 import org.example.rentathingproba.repository.UserRepository;
-import org.example.rentathingproba.service.infrastructure.EmailService;
+import org.example.rentathingproba.notification.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -80,8 +80,6 @@ public class AuthenticationService {
         User user = userRepository.findByEmail(input.getEmail())
                 .orElseThrow(() -> new UserNotFoundException(input.getEmail()));
 
-        // ✅ FIX 5: Bila je AccountNotVerifiedException — semantički potpuno krivo.
-        // Kad je account VEC verified, bacamo AccountAlreadyVerifiedException.
         if (user.isEnabled()) {
             throw new AccountAlreadyVerifiedException();
         }

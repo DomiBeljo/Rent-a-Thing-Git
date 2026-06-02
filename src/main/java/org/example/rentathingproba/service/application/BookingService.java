@@ -92,7 +92,7 @@ public class BookingService {
         booking.setRenter(renter);
         booking.setStartDate(dto.getStartDate());
         booking.setEndDate(dto.getEndDate());
-        booking.setStatus(Booking.Status.PENDING);
+        booking.setStatus(BookingStatus.PENDING);
         booking.setPricePerDay(listing.getPrice());
         booking.setTotalAmount(total);
         booking.setConversation(conversation);
@@ -102,7 +102,7 @@ public class BookingService {
         ChatMessage bookingMessage = new ChatMessage();
         bookingMessage.setConversation(conversation);
         bookingMessage.setSender(renter);
-        bookingMessage.setContent("📅 Booking Request: " + listing.getThings().getName());
+        bookingMessage.setContent("Booking Request: " + listing.getThings().getName());
         bookingMessage.setType(ChatMessage.MessageType.BOOKING_REQUEST);
         bookingMessage.setBooking(saved);
         chatMessageRepository.save(bookingMessage);
@@ -115,14 +115,14 @@ public class BookingService {
 
     public BookingResponseDTO confirmBooking(Long bookingId, User owner) {
         Booking booking = findAndAuthorizeOwner(bookingId, owner);
-        if (booking.getStatus() != Booking.Status.PENDING) {
+        if (booking.getStatus() != BookingStatus.PENDING) {
             throw new IllegalStateException("Only PENDING bookings can be confirmed.");
         }
         if (booking.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new IllegalStateException("This booking request has expired.");
         }
 
-        booking.setStatus(Booking.Status.CONFIRMED);
+        booking.setStatus(BookingStatus.CONFIRMED);
         booking.setPickupPin(generatePin());
         Booking saved = bookingRepository.save(booking);
 
@@ -130,9 +130,7 @@ public class BookingService {
             ChatMessage confirmMsg = new ChatMessage();
             confirmMsg.setConversation(booking.getConversation());
             confirmMsg.setSender(owner);
-            // ✅ FIX 1: PIN is NO LONGER in the chat message content.
-            // The renter fetches it separately via GET /bookings/{id}/pin.
-            confirmMsg.setContent("🎉 Booking Confirmed! The owner has accepted your request.");
+            confirmMsg.setContent("Booking Confirmed! The owner has accepted your request.");
             confirmMsg.setType(ChatMessage.MessageType.BOOKING_CONFIRMED);
             confirmMsg.setBooking(saved);
             chatMessageRepository.save(confirmMsg);
@@ -143,20 +141,18 @@ public class BookingService {
 
     public BookingResponseDTO declineBooking(Long bookingId, User owner) {
         Booking booking = findAndAuthorizeOwner(bookingId, owner);
-        if (booking.getStatus() != Booking.Status.PENDING) {
+        if (booking.getStatus() != BookingStatus.PENDING) {
             throw new IllegalStateException("Only PENDING bookings can be declined.");
         }
 
-        // ✅ FIX 2: Use DECLINED status instead of CANCELLED so we can
-        // distinguish an owner decline from a renter/owner cancellation.
-        booking.setStatus(Booking.Status.DECLINED);
+        booking.setStatus(BookingStatus.DECLINED);
         Booking saved = bookingRepository.save(booking);
 
         if (booking.getConversation() != null) {
             ChatMessage declineMsg = new ChatMessage();
             declineMsg.setConversation(booking.getConversation());
             declineMsg.setSender(owner);
-            declineMsg.setContent("❌ Booking Declined");
+            declineMsg.setContent("Booking Declined");
             declineMsg.setType(ChatMessage.MessageType.BOOKING_DECLINED);
             declineMsg.setBooking(saved);
             chatMessageRepository.save(declineMsg);
@@ -173,21 +169,21 @@ public class BookingService {
         if (!isOwner && !isRenter) {
             throw new UnauthorizedException();
         }
-        if (booking.getStatus() == Booking.Status.COMPLETED) {
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
             throw new IllegalStateException("Cannot cancel a completed booking.");
         }
-        if (booking.getStatus() == Booking.Status.ACTIVE) {
+        if (booking.getStatus() == BookingStatus.ACTIVE) {
             throw new IllegalStateException("Cannot cancel an active booking. Contact the other party.");
         }
 
-        booking.setStatus(Booking.Status.CANCELLED);
+        booking.setStatus(BookingStatus.CANCELLED);
         Booking saved = bookingRepository.save(booking);
 
         if (booking.getConversation() != null) {
             ChatMessage cancelMsg = new ChatMessage();
             cancelMsg.setConversation(booking.getConversation());
             cancelMsg.setSender(requestingUser);
-            cancelMsg.setContent("🚫 Booking Cancelled");
+            cancelMsg.setContent("Booking Cancelled");
             cancelMsg.setType(ChatMessage.MessageType.BOOKING_CANCELLED);
             cancelMsg.setBooking(saved);
             chatMessageRepository.save(cancelMsg);
@@ -202,21 +198,21 @@ public class BookingService {
         if (!booking.getRenter().getId().equals(renter.getId())) {
             throw new UnauthorizedException();
         }
-        if (booking.getStatus() != Booking.Status.CONFIRMED) {
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
             throw new IllegalStateException("Booking must be confirmed before pickup.");
         }
         if (booking.getPickupPin() == null || !booking.getPickupPin().equals(pin)) {
             throw new IllegalArgumentException("Invalid PIN.");
         }
 
-        booking.setStatus(Booking.Status.ACTIVE);
+        booking.setStatus(BookingStatus.ACTIVE);
         Booking saved = bookingRepository.save(booking);
 
         if (booking.getConversation() != null) {
             ChatMessage pickupMsg = new ChatMessage();
             pickupMsg.setConversation(booking.getConversation());
             pickupMsg.setSender(renter);
-            pickupMsg.setContent("🤝 Item picked up successfully!");
+            pickupMsg.setContent("Item picked up successfully!");
             pickupMsg.setType(ChatMessage.MessageType.PICKUP_CONFIRMED);
             pickupMsg.setBooking(saved);
             chatMessageRepository.save(pickupMsg);
@@ -227,18 +223,18 @@ public class BookingService {
 
     public BookingResponseDTO confirmReturn(Long bookingId, User owner) {
         Booking booking = findAndAuthorizeOwner(bookingId, owner);
-        if (booking.getStatus() != Booking.Status.ACTIVE) {
+        if (booking.getStatus() != BookingStatus.ACTIVE) {
             throw new IllegalStateException("Only ACTIVE bookings can be marked as returned.");
         }
 
-        booking.setStatus(Booking.Status.COMPLETED);
+        booking.setStatus(BookingStatus.COMPLETED);
         Booking saved = bookingRepository.save(booking);
 
         if (booking.getConversation() != null) {
             ChatMessage returnMsg = new ChatMessage();
             returnMsg.setConversation(booking.getConversation());
             returnMsg.setSender(owner);
-            returnMsg.setContent("✅ Item returned successfully! Thank you!");
+            returnMsg.setContent("Item returned successfully! Thank you!");
             returnMsg.setType(ChatMessage.MessageType.RETURN_CONFIRMED);
             returnMsg.setBooking(saved);
             chatMessageRepository.save(returnMsg);
@@ -250,14 +246,14 @@ public class BookingService {
     public int expirePendingBookings() {
         List<Booking> expired = bookingRepository.findExpiredPendingBookings(LocalDateTime.now());
         for (Booking booking : expired) {
-            booking.setStatus(Booking.Status.EXPIRED);
+            booking.setStatus(BookingStatus.EXPIRED);
             bookingRepository.save(booking);
 
             if (booking.getConversation() != null) {
                 ChatMessage expiredMsg = new ChatMessage();
                 expiredMsg.setConversation(booking.getConversation());
                 expiredMsg.setSender(booking.getRenter());
-                expiredMsg.setContent("⏰ Booking request expired after 24 hours");
+                expiredMsg.setContent("Booking request expired after 24 hours");
                 expiredMsg.setType(ChatMessage.MessageType.BOOKING_EXPIRED);
                 expiredMsg.setBooking(booking);
                 chatMessageRepository.save(expiredMsg);
@@ -267,8 +263,6 @@ public class BookingService {
         }
         return expired.size();
     }
-
-    // ── PIN fetch (owner or renter, only for CONFIRMED/ACTIVE bookings) ──────
 
     @Transactional(readOnly = true)
     public String getPickupPin(Long bookingId, User requestingUser) {
@@ -281,15 +275,13 @@ public class BookingService {
             throw new UnauthorizedException();
         }
 
-        if (booking.getStatus() != Booking.Status.CONFIRMED
-                && booking.getStatus() != Booking.Status.ACTIVE) {
+        if (booking.getStatus() != BookingStatus.CONFIRMED
+                && booking.getStatus() != BookingStatus.ACTIVE) {
             throw new IllegalStateException("PIN is only available for CONFIRMED or ACTIVE bookings.");
         }
 
         return booking.getPickupPin();
     }
-
-    // ── Rating guard ─────────────────────────────────────────────────────────
 
     @Transactional
     public void rateUserFromBooking(User reviewer, Long targetUserId, Long bookingId, double score) {
@@ -302,40 +294,27 @@ public class BookingService {
         if (!isOwner && !isRenter) {
             throw new UnauthorizedException();
         }
-
-        // Booking must be completed
-        if (booking.getStatus() != Booking.Status.COMPLETED) {
+        if (booking.getStatus() != BookingStatus.COMPLETED) {
             throw new IllegalStateException("You can only rate after the booking is completed.");
         }
-
-        // Prevent double-rating
         if (Boolean.TRUE.equals(booking.getReviewed())) {
             throw new IllegalStateException("You have already submitted a rating for this booking.");
         }
-
-        // Score range guard (1-5)
         if (score < 1.0 || score > 5.0) {
             throw new IllegalArgumentException("Score must be between 1 and 5.");
         }
-
-        // The user being rated must be the other participant
         Long ownerUserId  = booking.getListing().getUser().getId();
         Long renterUserId = booking.getRenter().getId();
         boolean validTarget = targetUserId.equals(ownerUserId) || targetUserId.equals(renterUserId);
         if (!validTarget || targetUserId.equals(reviewer.getId())) {
             throw new UnauthorizedException();
         }
-
-        // Apply rating and mark booking as reviewed
         booking.setReviewed(true);
         bookingRepository.save(booking);
 
         log.info("Rating applied: reviewerId={}, targetId={}, bookingId={}, score={}",
                 reviewer.getId(), targetUserId, bookingId, score);
     }
-
-    // ── Read methods ─────────────────────────────────────────────────────────
-
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getBookingsForListing(Long listingId, User owner) {
         Listing listing = listingRepository.findById(listingId)
@@ -366,8 +345,6 @@ public class BookingService {
         return !bookingRepository.existsOverlappingBooking(listingId, startDate, endDate);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private Booking findAndAuthorizeOwner(Long bookingId, User owner) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(bookingId));
@@ -396,7 +373,7 @@ public class BookingService {
                 b.getTotalAmount(),
                 b.getCreatedAt(),
                 b.getExpiresAt(),
-                null  // ✅ FIX 1: Never expose PIN in response DTO
+                null
         );
     }
 
@@ -422,7 +399,7 @@ public class BookingService {
                 deposit,
                 b.getTotalAmount(),
                 b.getStatus().name().toLowerCase(),
-                null,  // ✅ FIX 1: PIN never serialised into BookingDetailsDTO
+                null,
                 b.getRenter().getDisplayName(),
                 b.getListing().getUser().getDisplayName(),
                 isRenter ? "renter" : "owner",

@@ -22,7 +22,7 @@ public class MapMarkerDTO {
 
     private String thumbnailUrl;
 
-    private boolean isAvailable;
+    private Boolean isAvailable;
 
     private Long userId;
 

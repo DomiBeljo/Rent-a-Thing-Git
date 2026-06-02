@@ -15,4 +15,7 @@ public interface UserFavouriteRepository extends JpaRepository<UserFavourite, Lo
     Optional<UserFavourite> findByUserAndListing(User user, Listing listing);
     boolean existsByUserAndListing(User user, Listing listing);
     void deleteByUserAndListing(User user, Listing listing);
+    void deleteByListing(Listing listing);
+
+
 }

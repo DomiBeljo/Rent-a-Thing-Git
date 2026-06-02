@@ -85,14 +85,12 @@ public class GlobalExceptionHandler {
                 "Validation failed: " + details);
     }
 
-    // ✅ FIX 4a: IllegalStateException (booking state violations) → 409
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         log.warn("Illegal state: {}", ex.getMessage());
         return build(HttpStatus.CONFLICT, ErrorCode.BOOKING_INVALID_STATE, ex.getMessage());
     }
 
-    // ✅ FIX 4b: IllegalArgumentException (bad input, invalid PIN) → 400
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         log.warn("Illegal argument: {}", ex.getMessage());

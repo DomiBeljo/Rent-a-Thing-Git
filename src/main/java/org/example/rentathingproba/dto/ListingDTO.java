@@ -18,7 +18,7 @@ public class ListingDTO {
     @DecimalMin(value = "0.01", message = "price must be greater than 0")
     private BigDecimal price;
 
-    private BigDecimal securityDeposit; // optional
+    private BigDecimal securityDeposit;
 
     @NotBlank(message = "location is required")
     private String location;

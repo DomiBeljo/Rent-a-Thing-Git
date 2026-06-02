@@ -21,5 +21,5 @@ public class CreateBookingDTO {
     @NotNull(message = "endDate is required")
     private LocalDate endDate;
 
-    private Long conversationId; // optional
+    private Long conversationId;
 }

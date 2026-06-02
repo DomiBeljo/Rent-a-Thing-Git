@@ -19,8 +19,8 @@ public enum ErrorCode {
     LISTING_NOT_FOUND,
     LISTING_OWNERSHIP_REQUIRED,
 
-    BOOKING_NOT_FOUND,    // ✅ NEW
-    BOOKING_INVALID_STATE, // ✅ NEW — za IllegalStateException u booking flowu
+    BOOKING_NOT_FOUND,
+    BOOKING_INVALID_STATE,
 
     VALIDATION_INVALID_INPUT,
 

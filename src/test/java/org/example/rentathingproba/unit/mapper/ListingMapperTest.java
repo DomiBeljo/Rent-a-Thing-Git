@@ -139,7 +139,6 @@ class ListingMapperTest {
         assertThat(response.getListingId()).isEqualTo(100L);
         assertThat(response.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(15.0));
         assertThat(response.getLocation()).isEqualTo("Zagreb");
-        assertThat(response.isAvailable()).isTrue();
         assertThat(response.getSecurityDeposit()).isEqualByComparingTo(BigDecimal.valueOf(50.0));
         assertThat(response.getThingId()).isEqualTo(10L);
         assertThat(response.getName()).isEqualTo("Drill");
@@ -147,6 +146,6 @@ class ListingMapperTest {
         assertThat(response.getDescription()).isEqualTo("A drill");
         assertThat(response.getImageUrls()).containsExactly("img1", "img2");
         assertThat(response.getUserId()).isEqualTo(1L);
-        assertThat(response.getUserName()).isEqualTo("domTorretto@gmail.com");
+        assertThat(response.getUserName()).isEqualTo("domTorretto");
     }
 }

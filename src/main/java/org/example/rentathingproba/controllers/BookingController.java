@@ -24,7 +24,6 @@ public class BookingController {
         this.bookingService = bookingService;
     }
 
-    // ✅ FIX: Kept only /request — removed the duplicate bare POST /bookings
     @PostMapping("/request")
     public ResponseEntity<BookingResponseDTO> createRequest(
             @Valid @RequestBody CreateBookingDTO dto,
@@ -97,7 +96,6 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.confirmReturn(id, currentUser));
     }
 
-    // ✅ FIX 1: Dedicated PIN endpoint — requires auth, only CONFIRMED/ACTIVE bookings
     @GetMapping("/{id}/pin")
     public ResponseEntity<Map<String, String>> getPin(
             @PathVariable Long id,

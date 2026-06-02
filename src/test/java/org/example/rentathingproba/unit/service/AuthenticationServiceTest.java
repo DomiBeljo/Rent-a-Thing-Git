@@ -7,7 +7,7 @@ import org.example.rentathingproba.entities.User;
 import org.example.rentathingproba.exceptions.*;
 import org.example.rentathingproba.repository.UserRepository;
 import org.example.rentathingproba.service.application.AuthenticationService;
-import org.example.rentathingproba.service.infrastructure.EmailService;
+import org.example.rentathingproba.notification.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -208,16 +208,17 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("verifyUser: throws AccountNotVerifiedException when account already enabled")
+    @DisplayName("verifyUser: throws AccountAlreadyVerifiedException when account already enabled")
     void verifyUser_throwsWhenAlreadyEnabled() {
         VerifiedUserDTO dto = new VerifiedUserDTO();
         dto.setEmail("john@example.com");
         dto.setVerificationCode("123456");
 
-        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(enabledUser));
+        when(userRepository.findByEmail("john@example.com"))
+                .thenReturn(Optional.of(enabledUser));
 
         assertThatThrownBy(() -> authenticationService.verifyUser(dto))
-                .isInstanceOf(AccountNotVerifiedException.class);
+                .isInstanceOf(AccountAlreadyVerifiedException.class);
     }
 
     @Test

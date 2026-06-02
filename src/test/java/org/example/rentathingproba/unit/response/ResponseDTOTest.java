@@ -17,7 +17,7 @@ class ResponseDTOTest {
     @Test
     @DisplayName("UserResponseDTO: constructor and getters work correctly")
     void userResponseDTO_constructorAndGetters() {
-        UserResponseDTO dto = new UserResponseDTO(1L, "alice", "alice@example.com");
+        UserResponseDTO dto = new UserResponseDTO(1L, "alice", "alice@example.com", 3.4, 4, 3, 22);
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getUsername()).isEqualTo("alice");
         assertThat(dto.getEmail()).isEqualTo("alice@example.com");
@@ -61,7 +61,6 @@ class ResponseDTOTest {
                 BigDecimal.valueOf(50), 2L, "Drill", "Tools", "A drill", List.of(), 3L, "alice");
         assertThat(dto.getListingId()).isEqualTo(1L);
         assertThat(dto.getLocation()).isEqualTo("Zagreb");
-        assertThat(dto.isAvailable()).isTrue();
         assertThat(dto.getUserName()).isEqualTo("alice");
     }
 

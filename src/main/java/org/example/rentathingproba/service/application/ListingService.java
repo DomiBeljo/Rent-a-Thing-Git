@@ -1,7 +1,7 @@
 package org.example.rentathingproba.service.application;
 
 import org.example.rentathingproba.dto.ListingDTO;
-import org.example.rentathingproba.email.central.ListingEventPublisher;
+import org.example.rentathingproba.central.ListingEventPublisher;
 import org.example.rentathingproba.entities.Listing;
 import org.example.rentathingproba.entities.Thing;
 import org.example.rentathingproba.entities.User;
@@ -12,6 +12,7 @@ import org.example.rentathingproba.exceptions.ThingOwnershipException;
 import org.example.rentathingproba.mapper.ListingMapper;
 import org.example.rentathingproba.repository.ListingRepository;
 import org.example.rentathingproba.repository.ThingRepository;
+import org.example.rentathingproba.repository.UserFavouriteRepository;
 import org.example.rentathingproba.responses.ListingResponseDTO;
 import org.example.rentathingproba.responses.MapMarkerDTO;
 import org.slf4j.Logger;
@@ -21,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import org.example.rentathingproba.email.central.ListingAction;
+import org.example.rentathingproba.central.ListingAction;
 
 
 @Service
@@ -34,15 +35,18 @@ public class ListingService {
     private final ThingRepository thingRepository;
     private final ListingMapper listingMapper;
     private final ListingEventPublisher listingEventPublisher;
+    private final UserFavouriteRepository userFavouriteRepository;
 
     public ListingService(ListingRepository listingRepository,
                           ThingRepository thingRepository,
                           ListingMapper listingMapper,
-                          ListingEventPublisher listingEventPublisher) {
+                          ListingEventPublisher listingEventPublisher,
+                          UserFavouriteRepository userFavouriteRepository) {
         this.listingRepository = listingRepository;
         this.thingRepository = thingRepository;
         this.listingMapper = listingMapper;
         this.listingEventPublisher = listingEventPublisher;
+        this.userFavouriteRepository = userFavouriteRepository;
     }
 
     public ListingResponseDTO createListing(ListingDTO dto, User owner) {
@@ -92,6 +96,7 @@ public class ListingService {
             throw new ListingOwnershipException();
         }
 
+        userFavouriteRepository.deleteByListing(listing); // ← add this line
         listingRepository.delete(listing);
         log.info("Listing deleted successfully: id='{}'", listingId);
         listingEventPublisher.publish(this, listingId, requestingUser.getEmail(), requestingUser.getUsername(), ListingAction.DELETE);

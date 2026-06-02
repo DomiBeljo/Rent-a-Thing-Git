@@ -39,7 +39,6 @@ public class ThingService {
 
         log.info("Thing created successfully: id='{}'", saved.getId());
         return thingMapper.toResponse(saved);
-        //is available true in ListingService
     }
 
     public ThingResponseDTO updateThing(Long thingId, ThingDTO dto, User requestingUser) {

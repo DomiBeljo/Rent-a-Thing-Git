@@ -1,12 +1,12 @@
 package org.example.rentathingproba.unit.email;
 
-import org.example.rentathingproba.email.central.ListingAction;
-import org.example.rentathingproba.email.central.ListingEvent;
-import org.example.rentathingproba.email.notification.ListingNotificationService;
-import org.example.rentathingproba.email.notification.handler.CreateListingHandler;
-import org.example.rentathingproba.email.notification.handler.DeleteListingHandler;
-import org.example.rentathingproba.email.notification.handler.ListingNotificationHandler;
-import org.example.rentathingproba.email.notification.handler.UpdateListingHandler;
+import org.example.rentathingproba.central.ListingAction;
+import org.example.rentathingproba.central.ListingEvent;
+import org.example.rentathingproba.notification.ListingNotificationService;
+import org.example.rentathingproba.notification.handler.CreateListingHandler;
+import org.example.rentathingproba.notification.handler.DeleteListingHandler;
+import org.example.rentathingproba.notification.handler.ListingNotificationHandler;
+import org.example.rentathingproba.notification.handler.UpdateListingHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -80,7 +80,6 @@ class ListingNotificationServiceTest {
         ListingNotificationService emptyService = new ListingNotificationService(List.of());
         ListingEvent event = new ListingEvent(this, 99L, "user@test.com", "user", ListingAction.CREATE);
 
-        // must not throw — just logs a warning
         emptyService.notify(event);
     }
 }

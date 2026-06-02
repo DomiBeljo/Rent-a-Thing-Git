@@ -15,16 +15,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Booking {
 
-    public enum Status {
-        PENDING,    // Renter poslao zahtjev, čeka ownera
-        CONFIRMED,  // Owner potvrdio, generiran PIN
-        ACTIVE,     // Renter preuzeo item (PIN unesen)
-        COMPLETED,  // Item vraćen
-        CANCELLED,  // Otkazan od strane rentera ili ownera
-        DECLINED,   // ✅ FIX 2: Owner je odbio zahtjev (ranije pogrešno CANCELLED)
-        EXPIRED     // Automatski odbijen nakon 24h
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -45,7 +35,7 @@ public class Booking {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Status status = Status.PENDING;
+    private BookingStatus status = BookingStatus.PENDING;
 
     @Column(name = "price_per_day", nullable = false)
     private BigDecimal pricePerDay;

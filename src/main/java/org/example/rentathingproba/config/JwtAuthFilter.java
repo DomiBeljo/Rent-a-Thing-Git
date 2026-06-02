@@ -35,9 +35,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
-    // ✅ ISPRAVLJENO: Koristimo getServletPath() umjesto getRequestURI()
-    // getRequestURI() vraća /api/auth/... (uključuje context-path)
-    // getServletPath() vraća /auth/... (bez context-patha)
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
@@ -53,7 +50,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
-        // ✅ DEBUG LOGGING
         log.debug("[JWT_FILTER] Request: {} {}", request.getMethod(), request.getServletPath());
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -79,23 +75,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.info("[JWT_FILTER] ✅ Authentication SET for user: {}", userEmail);
+                    log.info("[JWT_FILTER] Authentication SET for user: {}", userEmail);
                 } else {
-                    log.warn("[JWT_FILTER] ❌ Token validation FAILED for user: {}", userEmail);
+                    log.warn("[JWT_FILTER] Token validation FAILED for user: {}", userEmail);
                 }
             }
             filterChain.doFilter(request, response);
         } catch (ExpiredJwtException ex) {
-            log.warn("[JWT_FILTER] ❌ Expired JWT: {}", ex.getMessage());
-            // ✅ VAŽNO: Ne nastavljamo filter chain, vraćamo 401
+            log.warn("[JWT_FILTER] Expired JWT: {}", ex.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"message\":\"Token expired. Please login again.\"}");
         } catch (JwtException ex) {
-            log.warn("[JWT_FILTER] ❌ Invalid JWT: {}", ex.getMessage());
+            log.warn("[JWT_FILTER] Invalid JWT: {}", ex.getMessage());
             handlerExceptionResolver.resolveException(request, response, null, ex);
         } catch (Exception e) {
-            log.error("[JWT_FILTER] ❌ Unexpected error: {}", e.getMessage(), e);
+            log.error("[JWT_FILTER] Unexpected error: {}", e.getMessage(), e);
             handlerExceptionResolver.resolveException(request, response, null, e);
         }
     }

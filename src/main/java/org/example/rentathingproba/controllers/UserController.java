@@ -33,8 +33,6 @@ public class UserController {
         return ResponseEntity.ok(userService.findAllUsers());
     }
 
-    // ── Favourites ────────────────────────────────────────────────────────────
-
     @GetMapping("/me/favourites")
     public ResponseEntity<List<ListingResponseDTO>> getFavourites(@AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(userService.getFavourites(currentUser));
@@ -61,15 +59,6 @@ public class UserController {
         return ResponseEntity.ok(Map.of("isFavourite", isFav));
     }
 
-    // ── Rating ────────────────────────────────────────────────────────────────
-
-    /**
-     * ✅ FIX 3: Rating endpoint sada zahtijeva bookingId.
-     * Service provjerava: booking je COMPLETED, caller je sudionik,
-     * booking.reviewed == false, score je 1-5, ne možeš ratati sam sebe.
-     *
-     * Request body: { "bookingId": 42, "score": 4.5 }
-     */
     @PostMapping("/{userId}/rate")
     public ResponseEntity<Void> rateUser(
             @PathVariable Long userId,

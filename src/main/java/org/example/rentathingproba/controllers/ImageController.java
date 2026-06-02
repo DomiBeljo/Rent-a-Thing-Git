@@ -43,7 +43,6 @@ public class ImageController {
             Path filePath = uploadPath.resolve(fileName);
             Files.write(filePath, file.getBytes());
 
-            // Automatski generira točan URL s pravim IP-jem, portom i /api context-pathom
             String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/images/")
                     .path(fileName)

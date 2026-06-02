@@ -3,6 +3,8 @@ package org.example.rentathingproba.responses;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.example.rentathingproba.entities.Booking;
+import org.example.rentathingproba.entities.BookingStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,7 +19,7 @@ public class BookingResponseDTO {
     private String renterName;
     private LocalDate startDate;
     private LocalDate endDate;
-    private Booking.Status status;
+    private BookingStatus status;
     private BigDecimal pricePerDay;
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
