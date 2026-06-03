@@ -1,8 +1,8 @@
 package org.example.rentathingproba.unit.email;
 
-import org.example.rentathingproba.email.central.ListingAction;
-import org.example.rentathingproba.email.central.ListingEvent;
-import org.example.rentathingproba.email.central.ListingEventPublisher;
+import org.example.rentathingproba.central.ListingAction;
+import org.example.rentathingproba.central.ListingEvent;
+import org.example.rentathingproba.central.ListingEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

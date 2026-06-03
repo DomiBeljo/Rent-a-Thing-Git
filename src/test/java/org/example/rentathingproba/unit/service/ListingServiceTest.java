@@ -1,8 +1,8 @@
 package org.example.rentathingproba.unit.service;
 
+import org.example.rentathingproba.central.ListingAction;
+import org.example.rentathingproba.central.ListingEventPublisher;
 import org.example.rentathingproba.dto.ListingDTO;
-import org.example.rentathingproba.email.central.ListingAction;
-import org.example.rentathingproba.email.central.ListingEventPublisher;
 import org.example.rentathingproba.entities.Listing;
 import org.example.rentathingproba.entities.Thing;
 import org.example.rentathingproba.entities.User;
@@ -28,17 +28,27 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ListingService Unit Tests")
+public
 class ListingServiceTest {
 
-    @Mock private ListingRepository listingRepository;
-    @Mock private ThingRepository thingRepository;
-    @Mock private ListingMapper listingMapper;
-    @Mock private ListingEventPublisher listingEventPublisher;
+    @Mock
+    private ListingRepository listingRepository;
+    @Mock
+    private ThingRepository thingRepository;
+    @Mock
+    private ListingMapper listingMapper;
+    @Mock
+    private ListingEventPublisher listingEventPublisher;
+    @Mock
+    private org.example.rentathingproba.repository.UserFavouriteRepository userFavouriteRepository;
 
     @InjectMocks
     private ListingService listingService;
@@ -81,8 +91,6 @@ class ListingServiceTest {
                 "A drill", List.of(), 1L, "owner");
     }
 
-    // ── createListing ──────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("createListing: maps, saves, returns response, and publishes CREATE event")
     void createListing_savesAndPublishesCreateEvent() {
@@ -118,8 +126,6 @@ class ListingServiceTest {
                 .isInstanceOf(ThingOwnershipException.class);
         verifyNoInteractions(listingRepository, listingEventPublisher);
     }
-
-    // ── updateListing ──────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("updateListing: updates, returns response, and publishes UPDATE event")
@@ -157,8 +163,6 @@ class ListingServiceTest {
         verifyNoInteractions(listingEventPublisher);
     }
 
-    // ── deleteListing ──────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("deleteListing: deletes and publishes DELETE event for owner")
     void deleteListing_deletesAndPublishesDeleteEvent() {
@@ -166,6 +170,7 @@ class ListingServiceTest {
 
         listingService.deleteListing(100L, owner);
 
+        verify(userFavouriteRepository).deleteByListing(listing);
         verify(listingRepository).delete(listing);
         verify(listingEventPublisher).publish(any(), eq(100L), eq("owner@example.com"), eq("owner@example.com"), eq(ListingAction.DELETE));
     }
@@ -190,8 +195,6 @@ class ListingServiceTest {
         verify(listingRepository, never()).delete(any());
         verifyNoInteractions(listingEventPublisher);
     }
-
-    // ── isItAvailable ──────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("isItAvailable: toggles availability from true to false for owner")
@@ -236,8 +239,6 @@ class ListingServiceTest {
         verify(listingRepository, never()).save(any());
     }
 
-    // ── searchListing ──────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("searchListing: returns mapped results for matching query")
     void searchListing_returnsMappedResults() {
@@ -259,8 +260,6 @@ class ListingServiceTest {
         assertThat(results).isEmpty();
     }
 
-    // ── getRecommended ─────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("getRecommended: returns mapped list of recommended listings")
     void getRecommended_returnsMappedRecommendedListings() {
@@ -271,8 +270,6 @@ class ListingServiceTest {
 
         assertThat(results).hasSize(1).containsExactly(responseDTO);
     }
-
-    // ── getUserListing ─────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("getUserListing: returns all listings for a given user")
