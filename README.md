@@ -17,6 +17,8 @@ REST API (JWT)
 ↕
 Controllers → Services → Repositories → Supabase (PostgreSQL)
 
+The backend is containerized using Docker, allowing consistent development and deployment environments across different platforms.
+
 ## Features
 
 - JWT Authentication & Authorization
@@ -36,7 +38,8 @@ Controllers → Services → Repositories → Supabase (PostgreSQL)
 - Spring Data JPA
 - Supabase(PostgreSQL)
 - JWT
-- 
+- Docker
+
 ## Getting Started
 
 ### Prerequisites
