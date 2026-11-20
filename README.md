@@ -89,7 +89,7 @@ Update your database credentials in the application configuration.
 
 ---
 
-Link to frontend: 
+Link to frontend: https://github.com/DavidKlobucaric/Rent_a_Thing1.git
 
 ### Testing
 - JUnit 5
