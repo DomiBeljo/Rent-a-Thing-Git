@@ -89,6 +89,7 @@ Update your database credentials in the application configuration.
 
 ---
 
+Link to frontend: 
 
 ### Testing
 - JUnit 5
@@ -108,4 +109,3 @@ The application follows a layered architecture:
 
 ```text
 Controllers → Services → Repositories → Supabase(PostgreSQL)
-
