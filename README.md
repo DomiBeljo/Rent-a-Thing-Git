@@ -5,7 +5,7 @@ A full-stack rental marketplace application that allows users to list items for 
 
 ## Architecture
 
-![Architecture](architecture.png)
+![Architecture](Architecture.png)
 
 The backend follows a layered architecture where controllers handle incoming HTTP requests, services contain the business logic, and repositories manage data persistence through Supabase PostgreSQL.
 
